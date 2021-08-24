@@ -58,6 +58,8 @@ public class GameFrame extends View {
 
     Vector<Coord> aktSnapCoords;
 
+    Vector<Coord> aktCoords;
+
     private static final int INVALID_POINTER_ID = -1;
     private float fX, fY, sX, sY;
     private float nfX, nfY, nsX, nsY;
@@ -80,6 +82,8 @@ public class GameFrame extends View {
     ShapeData.types[] shapeTypes;
     int[] shapeDir;
 
+    boolean isSaveMode = false;
+
     public GameFrame(Context c, AttributeSet attrs) {
         super(c, attrs);
         context = c;
@@ -99,6 +103,10 @@ public class GameFrame extends View {
         shapes = new Vector<>();
 
         aktSnapCoords = new Vector<>();
+
+
+        aktCoords = new Vector<>();
+
 
     }
 
@@ -207,8 +215,15 @@ public class GameFrame extends View {
                 //boolean isWon = true;
                 float allnum = (smaxx-sminx)*(smaxy-sminy);
                 float percent = emptyPixelNum/allnum;
-                canvas.drawText("ISWON: " + isWon + " empty: " + emptyPixelNum + " / " + allnum + " " + percent + "% ", 50, getHeight() / 2, tpaint);
+                canvas.drawText("ISWON: " + isWon + " empty: " + emptyPixelNum + " / " + allnum + " " + percent + "% ", 50, 20, tpaint);
             }
+        }
+
+        for (int i = 0; i < aktCoords.size(); i++) {
+            coord = aktCoords.elementAt(i);
+            canvas.save();
+            canvas.drawCircle(coord.x, coord.y, 10, paint);
+            canvas.restore();
         }
 
 
@@ -242,6 +257,10 @@ public class GameFrame extends View {
         }
         path.lineTo(coords[0].x, coords[0].y);
         path.close();
+        if (aktShape != null && sd.getId() == aktShape.getId())
+            sd.getPaint().setAlpha(20);
+        else
+            sd.getPaint().setAlpha(255);
         canvas.drawPath(path, sd.getPaint());
         canvas.restore();
 
@@ -343,7 +362,11 @@ public class GameFrame extends View {
                     }
                 }
                 else if (x >= btn3[0] && x <= btn3[2] && y >= btn3[1] && y <= btn3[3]) {
-                    shapes = new Vector<>();
+                    //shapes = new Vector<>();
+
+                    //logCoords();
+                    isSaveMode = true;
+
                     invalidate();
                 }
                 else {
@@ -489,6 +512,9 @@ public class GameFrame extends View {
                 break;
             case MotionEvent.ACTION_UP:
                 //ptrID1 = INVALID_POINTER_ID;
+                //System.out.println("koord: "+x+" "+y);
+                if (isSaveMode)
+                    saveCoord(x,y);
                 aktSnapCoords.clear();
                 isDrag = false;
                 invalidate();
@@ -1445,4 +1471,83 @@ public class GameFrame extends View {
         }
         return isWon;
     }
+
+    void logCoords() {
+        ShapeData sd;
+        for (int i = 0; i < shapes.size(); i++) {
+            sd = shapes.elementAt(i);
+            logCoord(sd);
+        }
+    }
+
+    void logCoord(ShapeData sd) {
+        ShapeData.types type;
+        Coord[] coords;
+        Coord centr;
+        type = sd.getType();
+        coords = sd.getCoords();
+        //parent.showMess("type: "+type+" color: "+sd.getPaint().getColor());
+        coords = rotateCoords(coords, sd.getCenter(), sd.getDeg());
+        String s = type.toString();
+        for (int i = 0; i < coords.length; i++) {
+            s+=i+". x: "+coords[i].x+" y: "+coords[i].y+";";
+        }
+        //System.out.println(s);
+    }
+
+    void saveCoord(int x, int y) {
+        ShapeData sd;
+        Coord coord = new Coord(x,y);
+        for (int i = 0; i < shapes.size(); i++) {
+            sd = shapes.elementAt(i);
+            searchCoord(sd, coord);
+        }
+    }
+
+    void searchCoord(ShapeData sd, Coord coord) {
+        ShapeData.types type;
+        Coord[] coords;
+        Coord centr;
+        type = sd.getType();
+        coords = sd.getCoords();
+        //parent.showMess("type: "+type+" color: "+sd.getPaint().getColor());
+        coords = rotateCoords(coords, sd.getCenter(), sd.getDeg());
+        String s = type.toString();
+        int d;
+
+        int dist = 1000;
+        boolean ok;
+        int aktx = -1;
+        int akty = -1;
+
+        for (int i = 0; i < coords.length; i++) {
+            d = distance(coords[i],coord);
+            if (d < 50 && d < dist ) {
+                ok = true;
+                for (int j = 0; j < aktCoords.size(); j++) {
+                    if (Math.abs(aktCoords.elementAt(j).x - coords[i].x) < 10 && Math.abs(aktCoords.elementAt(j).y - coords[i].y) < 10)
+                        ok = false;
+                }
+                if (ok) {
+                    aktx = coords[i].x;
+                    akty = coords[i].y;
+                }
+                dist = d;
+            }
+        }
+
+        if (aktx != -1 && akty != -1) {
+            System.out.println("belerakom: "+aktx+" "+akty);
+
+            aktCoords.add(new Coord(aktx, akty));
+        }
+
+        Coord c;
+/*
+        for (int i = 0; i < aktCoords.size(); i++) {
+            c = aktCoords.elementAt(i);
+            System.out.println(c.x+", "+c.y);
+        }*/
+    }
+
 }
