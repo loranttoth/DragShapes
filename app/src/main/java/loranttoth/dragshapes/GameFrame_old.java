@@ -222,7 +222,7 @@ public class GameFrame_old extends View {
         canvas.save();
         type = sd.getType();
         coords = sd.getCoords();
-        coords2 = sd.getCoords2();
+        coords2 = sd.getCoords();
         //parent.showMess("type: "+type+" color: "+sd.getPaint().getColor());
         coords = rotateCoords(coords, sd.getCenter(), sd.getDeg());
         coords2 = rotateCoords(coords2, sd.getCenter(), sd.getDeg());
@@ -385,12 +385,12 @@ public class GameFrame_old extends View {
                             coords[i].y -= dy;
                         }
                         aktShape.setCoords(coords);
-                        Coord[] coords2 = aktShape.getCoords2();
+                        Coord[] coords2 = aktShape.getCoords();
                         for (int i = 0; i < coords2.length; i++) {
                             coords2[i].x -= dx;
                             coords2[i].y -= dy;
                         }
-                        aktShape.setCoords2(coords2);
+                        aktShape.setCoords(coords2);
                         aktSnapCoords.clear();
                         Coord delta = getSnappedCoord(aktShape);
                         if (delta != null) {
@@ -405,12 +405,12 @@ public class GameFrame_old extends View {
                                 newcoords[i] = new Coord(coords[i].x - dx, coords[i].y - dy);
                             }
                             aktShape.setCoords(newcoords);
-                            coords2 = aktShape.getCoords2();
+                            coords2 = aktShape.getCoords();
                             Coord[] newcoords2 = new Coord[coords2.length];
                             for (int i = 0; i < coords2.length; i++) {
                                 newcoords2[i] = new Coord(coords2[i].x - dx, coords2[i].y - dy);
                             }
-                            aktShape.setCoords2(newcoords2);
+                            aktShape.setCoords(newcoords2);
                             aktShape.setSnapped(true);
                             if (lastSnap == null || (lastSnap.x != dx || lastSnap.y != dy))
                                 playSnapSound();
@@ -569,7 +569,7 @@ public class GameFrame_old extends View {
                         break;
                 }
 
-                ShapeData data = new ShapeData(shapeId++, type, coords, coords2, center, color, deg, sizex, sizey, irany, paint1);
+                ShapeData data = new ShapeData(shapeId++, type, coords, center, color, deg, sizex, sizey, irany, paint1);
                 shapes.addElement(data);
             }catch (Exception e) {
                 parent.showMess("error: "+e.getLocalizedMessage());

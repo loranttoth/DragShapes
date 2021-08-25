@@ -55,14 +55,6 @@ public class ShapeData {
         this.snapped = snapped;
     }
 
-    public Coord[] getCoords2() {
-        return coords2;
-    }
-
-    public void setCoords2(Coord[] coords2) {
-        this.coords2 = coords2;
-    }
-
     public enum types {
         SQUARE,
         RECTANGLE,
@@ -77,7 +69,6 @@ public class ShapeData {
     private int id;
     private types type;
     private Coord[] coords;
-    private Coord[] coords2;
     private Coord center;
     private int color;
     private int deg;
@@ -87,11 +78,10 @@ public class ShapeData {
     private boolean snapped;
     private Paint paint;
 
-    public ShapeData(int id, types type, Coord[] coords, Coord[] coords2, Coord center, int color, int deg, int sizex, int sizey, int irany, Paint paint) {
+    public ShapeData(int id, types type, Coord[] coords, Coord center, int color, int deg, int sizex, int sizey, int irany, Paint paint) {
         this.setId(id);
         this.setType(type);
         this.setCoords(coords);
-        this.setCoords2(coords2);
         this.setCenter(center);
         this.setColor(color);
         this.setDeg(deg);

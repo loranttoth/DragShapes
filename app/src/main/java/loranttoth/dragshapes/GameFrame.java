@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PorterDuff;
+import android.media.MediaPlayer;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -26,10 +27,6 @@ public class GameFrame extends View {
 
     Paint paintbig;
     Paint paintbig2;
-
-    int[] btn1;
-    int[] btn2;
-
     int[] btn3;
 
     ShapeMainActivity parent;
@@ -58,6 +55,8 @@ public class GameFrame extends View {
 
     Vector<Coord> aktSnapCoords;
 
+    Coord lastSnap = null;
+
     Vector<Coord> aktCoords;
 
     private static final int INVALID_POINTER_ID = -1;
@@ -67,7 +66,6 @@ public class GameFrame extends View {
     private float mAngle;
 
     Coord[] shapeCoords;
-    Coord[] shapeCoords2;
 
     int shapeColor = Color.LTGRAY;
     int shapeColor2 = Color.DKGRAY;
@@ -84,6 +82,8 @@ public class GameFrame extends View {
 
     boolean isSaveMode = false;
 
+    boolean isWon = false;
+
     public GameFrame(Context c, AttributeSet attrs) {
         super(c, attrs);
         context = c;
@@ -99,14 +99,11 @@ public class GameFrame extends View {
         paintbig2.setStyle(Paint.Style.STROKE);
         paintbig2.setStrokeWidth(10);
 
-
         shapes = new Vector<>();
 
         aktSnapCoords = new Vector<>();
 
-
         aktCoords = new Vector<>();
-
 
     }
 
@@ -125,9 +122,18 @@ public class GameFrame extends View {
         if (shapes.size() == 0 && maxx > 0 && maxy > 0){
             int min = Math.min(w, h);
             unit = min/13;
+            //unit = 100;
             aktShape = null;
             makeShapeCoords();
             makeShapes();
+
+            int bw = (w / 3)-50;
+
+            btn3 = new int[4];
+            btn3[0] = (2*bw)+40;
+            btn3[1] = maxy - 120;
+            btn3[2] = w-10;
+            btn3[3] = maxy - 20;
         }
 
         if (bitmap == null && w >0 && h > 0) {
@@ -141,54 +147,36 @@ public class GameFrame extends View {
         drawBigShape(canvas);
         drawBigShape(canvasb);
 
-        int bw = (w / 3)-50;
-
-        btn1 = new int[4];
-        btn1[0] = 10;
-        btn1[1] = maxy - 120;
-        btn1[2] = bw+10;
-        btn1[3] = maxy - 20;
-
-        btn2 = new int[4];
-        btn2[0] = bw+20;
-        btn2[1] = maxy - 120;
-        btn2[2] = (2*bw)+30;
-        btn2[3] = maxy - 20;
-
-
-        btn3 = new int[4];
-        btn3[0] = (2*bw)+40;
-        btn3[1] = maxy - 120;
-        btn3[2] = w-10;
-        btn3[3] = maxy - 20;
-
 
         paint.setColor(Color.BLUE);
         paint.setStrokeWidth(2);
 
         ShapeData sd;
-        for (int i = 0; i < shapes.size(); i++) {
-            sd = shapes.elementAt(i);
-            drawShape(sd, canvas, false);
-            drawShape(sd, canvasb, true);
-        }
-        if (aktShape != null) {
-            drawShape(aktShape, canvas, true);
-          //  drawShape(aktShape, canvasb, true);
-        }
-
-        Paint paint = new Paint();
-        paint.setColor(Color.BLACK);
         Coord coord;
-        for (int i = 0; i < aktSnapCoords.size(); i++) {
-            coord = aktSnapCoords.elementAt(i);
-            canvas.save();
-            canvas.drawCircle(coord.x, coord.y, 10, paint);
-            canvas.restore();
-        }
-        if (aktShape != null) {
-            drawShape(aktShape, canvas, true);
-          //  drawShape(aktShape, canvasb, true);
+        if (!isWon) {
+            for (int i = 0; i < shapes.size(); i++) {
+                sd = shapes.elementAt(i);
+                drawShape(sd, canvas, false);
+                drawShape(sd, canvasb, true);
+            }
+            if (aktShape != null) {
+                drawShape(aktShape, canvas, true);
+                //  drawShape(aktShape, canvasb, true);
+            }
+
+            Paint paint = new Paint();
+            paint.setColor(Color.BLACK);
+
+            for (int i = 0; i < aktSnapCoords.size(); i++) {
+                coord = aktSnapCoords.elementAt(i);
+                canvas.save();
+                canvas.drawCircle(coord.x, coord.y, 10, paint);
+                canvas.restore();
+            }
+            if (aktShape != null) {
+                drawShape(aktShape, canvas, true);
+                //  drawShape(aktShape, canvasb, true);
+            }
         }
 
         //koords text
@@ -210,8 +198,8 @@ public class GameFrame extends View {
             //if (bitmap2 != null)
             //    canvas.drawBitmap(bitmap2, 100, (getHeight()/2)+200, paint);
 
-            if (checkAllConnected()) {
-                boolean isWon = checkVictory();
+            if (!isWon && checkAllConnected()) {
+                isWon = checkVictory();
                 //boolean isWon = true;
                 float allnum = (smaxx-sminx)*(smaxy-sminy);
                 float percent = emptyPixelNum/allnum;
@@ -225,10 +213,6 @@ public class GameFrame extends View {
             canvas.drawCircle(coord.x, coord.y, 10, paint);
             canvas.restore();
         }
-
-
-        canvas.drawRect(btn1[0], btn1[1], btn1[2], btn1[3], paint);
-        canvas.drawRect(btn2[0], btn2[1], btn2[2], btn2[3], paint);
         canvas.drawRect(btn3[0], btn3[1], btn3[2], btn3[3], paint);
 
         //canvas.drawText(time+"",w-100,h-100,tpaint);
@@ -240,15 +224,12 @@ public class GameFrame extends View {
         Path path;
         ShapeData.types type;
         Coord[] coords;
-        Coord[] coords2;
         Coord centr;
         canvas.save();
         type = sd.getType();
         coords = sd.getCoords();
-        coords2 = sd.getCoords2();
         //parent.showMess("type: "+type+" color: "+sd.getPaint().getColor());
         coords = rotateCoords(coords, sd.getCenter(), sd.getDeg());
-        coords2 = rotateCoords(coords2, sd.getCenter(), sd.getDeg());
         path = new Path();
         path.setFillType(Path.FillType.EVEN_ODD);
         path.moveTo(coords[0].x, coords[0].y);
@@ -275,11 +256,11 @@ public class GameFrame extends View {
             canvas.save();
 
             path = new Path();
-            path.moveTo(coords2[0].x, coords2[0].y);
-            for (int i = 1; i < coords2.length; i++) {
-                path.lineTo(coords2[i].x, coords2[i].y);
+            path.moveTo(coords[0].x, coords[0].y);
+            for (int i = 1; i < coords.length; i++) {
+                path.lineTo(coords[i].x, coords[i].y);
             }
-            path.lineTo(coords2[0].x, coords2[0].y);
+            path.lineTo(coords[0].x, coords[0].y);
             path.close();
             canvas.drawPath(path, paintline);
             canvas.restore();
@@ -292,11 +273,11 @@ public class GameFrame extends View {
         Path path;
         canvas.save();
         path = new Path();
-        path.moveTo(shapeCoords2[0].x, shapeCoords2[0].y);
-        for (int i = 1; i < shapeCoords2.length; i++) {
-            path.lineTo(shapeCoords2[i].x, shapeCoords2[i].y);
+        path.moveTo(shapeCoords[0].x, shapeCoords[0].y);
+        for (int i = 1; i < shapeCoords.length; i++) {
+            path.lineTo(shapeCoords[i].x, shapeCoords[i].y);
         }
-        path.lineTo(shapeCoords2[0].x, shapeCoords2[0].y);
+        path.lineTo(shapeCoords[0].x, shapeCoords[0].y);
         path.close();
         canvas.drawPath(path, paintbig2);
         canvas.restore();
@@ -343,28 +324,8 @@ public class GameFrame extends View {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 aktSnapCoords.clear();
-                if (x >= btn1[0] && x <= btn1[2] && y >= btn1[1] && y <= btn1[3]) {
-                    if (aktShape != null) {
-                        aktShape.setDeg(aktShape.getDeg() - 15);
-                        if (aktShape.getDeg() < 0) {
-                            aktShape.setDeg(360);
-                        }
-                        invalidate();
-                    }
-                }
-                else if (x >= btn2[0] && x <= btn2[2] && y >= btn2[1] && y <= btn2[3]) {
-                    if (aktShape != null) {
-                        aktShape.setDeg(aktShape.getDeg() + 15);
-                        if (aktShape.getDeg() >= 360) {
-                            aktShape.setDeg(0);
-                        }
-                        invalidate();
-                    }
-                }
-                else if (x >= btn3[0] && x <= btn3[2] && y >= btn3[1] && y <= btn3[3]) {
+                if (x >= btn3[0] && x <= btn3[2] && y >= btn3[1] && y <= btn3[3]) {
                     //shapes = new Vector<>();
-
-                    //logCoords();
                     isSaveMode = true;
 
                     invalidate();
@@ -383,10 +344,12 @@ public class GameFrame extends View {
                     }
 
                     if (bitmap != null) {
-                        int pcol = bitmap.getPixel(x, y);
+                        //int pcol = bitmap.getPixel(x, y);
+                        Coord coord = new Coord(x, y);
                         //aktShape = null;
                         for (int i = 0; i < shapes.size(); i++) {
-                            if (shapes.elementAt(i).getColor() == pcol) {
+                            //if (shapes.elementAt(i).getColor() == pcol) {
+                            if (containsPoly(shapes.elementAt(i).getCoords(), coord)) {
                                 aktShape = shapes.elementAt(i);
                                 isDrag = true;
                                 invalidate();
@@ -418,13 +381,7 @@ public class GameFrame extends View {
 
                 }*/
                 //else {
-                    if (x >= btn1[0] && x <= btn1[2] && y >= btn1[1] && y <= btn1[3]) {
-                    }
-                    else if (x >= btn2[0] && x <= btn2[2] && y >= btn2[1] && y <= btn2[3]) {
-                    }
-                    else if (x >= btn3[0] && x <= btn3[2] && y >= btn3[1] && y <= btn3[3]) {
-                    }
-                    else if (aktShape != null && x != oldx && y != oldy && isDrag) {
+                    if (aktShape != null && x != oldx && y != oldy && isDrag) {
                         Coord newcenter;
                         Coord oldcenter = aktShape.getCenter();
                         int dx = oldcenter.x - x;
@@ -443,12 +400,6 @@ public class GameFrame extends View {
                             coords[i].y -= dy;
                         }
                         aktShape.setCoords(coords);
-                        Coord[] coords2 = aktShape.getCoords2();
-                        for (int i = 0; i < coords2.length; i++) {
-                            coords2[i].x -= dx;
-                            coords2[i].y -= dy;
-                        }
-                        aktShape.setCoords2(coords2);
                         aktSnapCoords.clear();
                         Coord delta = getSnappedCoord(aktShape);
                         if (delta != null) {
@@ -463,16 +414,14 @@ public class GameFrame extends View {
                                 newcoords[i] = new Coord(coords[i].x - dx, coords[i].y - dy);
                             }
                             aktShape.setCoords(newcoords);
-                            coords2 = aktShape.getCoords2();
-                            Coord[] newcoords2 = new Coord[coords2.length];
-                            for (int i = 0; i < coords2.length; i++) {
-                                newcoords2[i] = new Coord(coords2[i].x - dx, coords2[i].y - dy);
-                            }
-                            aktShape.setCoords2(newcoords2);
                             aktShape.setSnapped(true);
+                            if (lastSnap == null || (lastSnap.x != dx || lastSnap.y != dy))
+                                playSnapSound();
+                                lastSnap = new Coord(dx, dy);
                         }
                         else {
                             aktShape.setSnapped(false);
+                            lastSnap = null;
                         }
                         oldx = x;
                         oldy = y;
@@ -480,26 +429,22 @@ public class GameFrame extends View {
                         invalidate();
                     }
                     else if (aktShape != null && x != oldx && y != oldy) {
-                        if (x < oldx){
-                            if (Math.abs(x-oldx) > 100) {
+                        if (x != oldx){
+                            if (Math.abs(x-oldx) > 50) {
                                 if (aktShape != null) {
-                                    aktShape.setDeg(aktShape.getDeg() - 15);
-                                    if (aktShape.getDeg() < 0) {
-                                        aktShape.setDeg(360);
+                                    if (x < oldx) {
+                                        aktShape.setDeg(aktShape.getDeg() - 15);
+                                        if (aktShape.getDeg() < 0) {
+                                            aktShape.setDeg(360);
+                                        }
                                     }
-                                    oldx = x;
-                                    oldy = y;
-                                    invalidate();
-                                }
-                            }
-                        }
-                        else {
-                            if (Math.abs(x-oldx) > 100) {
-                                if (aktShape != null) {
-                                    aktShape.setDeg(aktShape.getDeg() + 15);
-                                    if (aktShape.getDeg() >= 360) {
-                                        aktShape.setDeg(0);
+                                    else {
+                                        aktShape.setDeg(aktShape.getDeg() + 15);
+                                        if (aktShape.getDeg() >= 360) {
+                                            aktShape.setDeg(0);
+                                        }
                                     }
+
                                     oldx = x;
                                     oldy = y;
                                     invalidate();
@@ -540,8 +485,8 @@ public class GameFrame extends View {
         for (int i = 0; i < shapeTypes.length; i++) {
             try {
                 Paint paint1 = new Paint(Paint.ANTI_ALIAS_FLAG);
-                int x = rnd.nextInt(w-100) + 50;
-                int y = rnd.nextInt((h/2)-100) + (h/2)+100;
+                int x = rnd.nextInt(w-200)+50;
+                int y = rnd.nextInt((h/2)-200) + (h/2)+100;
                 Coord center = new Coord(x, y);
                 //int size = rnd.nextInt(3) + 1;
                 //int sizex = 2;
@@ -558,49 +503,34 @@ public class GameFrame extends View {
                 //ShapeData.types type = ShapeData.types.values()[t];
                 ShapeData.types type = shapeTypes[i];
                 Coord[] coords = null;
-                Coord[] coords2 = null;
-
-                Coord[][] allcoords = null;
                 switch (type) {
                     case SQUARE:
-                        allcoords = makeSquare(center, sizex);
-                        coords = allcoords[0];
-                        coords2 = allcoords[1];
+                        coords = makeSquare(center, sizex);
                         center = new Coord(center.x+(sizex*unit/2),center.y-(sizex*unit/2));
                         break;
                     case RECTANGLE:
-                        allcoords = makeRectangle(center, sizex, sizey);
-                        coords = allcoords[0];
-                        coords2 = allcoords[1];
+                        coords = makeRectangle(center, sizex, sizey);
                         center = new Coord(center.x+(sizex*unit/2),center.y-(sizey*unit/2));
                         break;
                     case TRIANGLE1:
-                        allcoords = makeTriangle1(center, sizex, shapeDir[i]);
-                        coords = allcoords[0];
-                        coords2 = allcoords[1];
+                        coords = makeTriangle1(center, sizex, shapeDir[i]);
                         center = getCentroid(coords);
                         break;
                     case TRIANGLE2:
-                        allcoords = makeTriangle2(center, sizex,shapeDir[i]);
-                        coords = allcoords[0];
-                        coords2 = allcoords[1];
+                        coords = makeTriangle2(center, sizex,shapeDir[i]);
                         center = getCentroid(coords);
                         break;
                     case TRIANGLE3:
-                        allcoords = makeTriangle3(center, sizex,shapeDir[i]);
-                        coords = allcoords[0];
-                        coords2 = allcoords[1];
+                        coords = makeTriangle3(center, sizex,shapeDir[i]);
                         center = getCentroid(coords);
                         break;
                     case PARALELOGRAMA:
-                        allcoords = makeParalelograma(center, sizex, shapeDir[i]);
-                        coords = allcoords[0];
-                        coords2 = allcoords[1];
+                        coords = makeParalelograma(center, sizex, shapeDir[i]);
                         center = new Coord(center.x,center.y-(sizex*unit/2));
                         break;
                 }
 
-                ShapeData data = new ShapeData(shapeId++, type, coords, coords2, center, color, deg, sizex, sizey, irany, paint1);
+                ShapeData data = new ShapeData(shapeId++, type, coords, center, color, deg, sizex, sizey, irany, paint1);
                 shapes.addElement(data);
             }catch (Exception e) {
                 parent.showMess("error: "+e.getLocalizedMessage());
@@ -608,168 +538,106 @@ public class GameFrame extends View {
         }
     }
 
-    Coord[][] makeSquare(Coord center, int size) {
-        Coord[][] ret = new Coord[2][4];
+    Coord[] makeSquare(Coord center, int size) {
         Coord[] coord = new Coord[4];
         coord[0] = new Coord(center.x, center.y);
         coord[1] = new Coord(center.x + (size*unit), center.y);
         coord[2] = new Coord(center.x + (size*unit), center.y - (size*unit));
         coord[3] = new Coord(center.x , center.y - (size*unit));
 
-        Coord[] coord2 = new Coord[4];
-        coord2[0] = new Coord(center.x-1, center.y+1);
-        coord2[1] = new Coord(center.x + (size*unit)+1, center.y+1);
-        coord2[2] = new Coord(center.x + (size*unit)+1, (center.y - (size*unit))-1);
-        coord2[3] = new Coord(center.x-1 , (center.y - (size*unit))-1);
-
-        ret[0] = coord;
-        ret[1] = coord2;
-
-        return ret;
+        return coord;
     }
 
-    Coord[][] makeParalelograma(Coord center, int sizex, int dir) {
-        Coord[][] ret = new Coord[2][4];
+    Coord[] makeParalelograma(Coord center, int sizex, int dir) {
         Coord[] coord = new Coord[4];
-        Coord[] coord2 = new Coord[4];
         if (dir == 1) {
             coord[0] = new Coord(center.x, center.y);
             coord[1] = new Coord(center.x + (sizex*unit), center.y- (sizex*unit));
             coord[2] = new Coord(center.x, center.y - (sizex*unit));
             coord[3] = new Coord(center.x - (sizex*unit), center.y);
-
-            coord2[0] = new Coord(center.x-1, center.y+1);
-            coord2[1] = new Coord(center.x + (sizex*unit)+1, (center.y- (sizex*unit))-1);
-            coord2[2] = new Coord(center.x-1, (center.y - (sizex*unit))-1);
-            coord2[3] = new Coord((center.x - (sizex*unit))-1, center.y+1);
         }
         else {
             coord[0] = new Coord(center.x, center.y);
             coord[1] = new Coord(center.x + (sizex*unit), center.y);
             coord[2] = new Coord(center.x, center.y - (sizex*unit));
             coord[3] = new Coord(center.x - (sizex*unit), center.y - (sizex*unit));
-
-            coord2[0] = new Coord(center.x-1, center.y+1);
-            coord2[1] = new Coord(center.x + (sizex*unit)+1, center.y+1);
-            coord2[2] = new Coord(center.x-1, (center.y - (sizex*unit))-1);
-            coord2[3] = new Coord((center.x - (sizex*unit)-1), (center.y - (sizex*unit))-1);
         }
-        ret[0] = coord;
-        ret[1] = coord2;
-        return ret;
+        return coord;
     }
 
-    Coord[][] makeRectangle(Coord center, int sizex, int sizey) {
-        Coord[][] ret = new Coord[2][4];
+    Coord[] makeRectangle(Coord center, int sizex, int sizey) {
         Coord[] coord = new Coord[4];
-        Coord[] coord2 = new Coord[4];
 
         coord[0] = new Coord(center.x, center.y);
         coord[1] = new Coord(center.x + (sizex*unit), center.y);
         coord[2] = new Coord(center.x + (sizex*unit), center.y - (sizey*unit));
         coord[3] = new Coord(center.x , center.y - (sizey*unit));
-
-        coord2[0] = new Coord(center.x-1, center.y+1);
-        coord2[1] = new Coord(center.x + (sizex*unit)+1, center.y+1);
-        coord2[2] = new Coord(center.x + (sizex*unit)+1, (center.y - (sizey*unit))-1);
-        coord2[3] = new Coord(center.x-1 , (center.y - (sizey*unit))-1);
-
-        ret[0] = coord;
-        ret[1] = coord2;
-        return ret;
+        return coord;
     }
 
-    Coord[][] makeTriangle1(Coord center, int sizex, int dir) {
-        Coord[][] ret = new Coord[2][3];
+    Coord[] makeTriangle1(Coord center, int sizex, int dir) {
         Coord[] coord = new Coord[3];
-        Coord[] coord2 = new Coord[3];
         if (dir == 1) {
             coord[0] = new Coord(center.x, center.y);
             coord[1] = new Coord(center.x + (sizex * unit), center.y);
             coord[2] = new Coord(center.x, center.y - (sizex * unit));
-
-            coord2[0] = new Coord(center.x-1, center.y+1);
-            coord2[1] = new Coord(center.x + (sizex * unit)+1, center.y+1);
-            coord2[2] = new Coord(center.x-1, (center.y - (sizex * unit))-1);
         }
         else {
             coord[0] = new Coord(center.x, center.y);
             coord[1] = new Coord(center.x - (sizex * unit), center.y);
             coord[2] = new Coord(center.x, center.y - (sizex * unit));
-
-            coord2[0] = new Coord(center.x+1, center.y+1);
-            coord2[1] = new Coord((center.x - (sizex * unit))-1, center.y+1);
-            coord2[2] = new Coord(center.x+1, (center.y - (sizex * unit))-1);
         }
-        ret[0] = coord;
-        ret[1] = coord2;
-        return ret;
+        return coord;
     }
 
-    Coord[][] makeTriangle2(Coord center, int sizex, int dir) {
-        Coord[][] ret = new Coord[2][3];
+    Coord[] makeTriangle2(Coord center, int sizex, int dir) {
         Coord[] coord = new Coord[3];
-        Coord[] coord2 = new Coord[3];
         if (dir == 1) {
             coord[0] = new Coord(center.x, center.y);
             coord[1] = new Coord(center.x + (sizex * unit * 2), center.y);
             coord[2] = new Coord(center.x + (sizex * unit), center.y - (sizex * unit));
-
-            coord2[0] = new Coord(center.x-1, center.y+1);
-            coord2[1] = new Coord(center.x + (sizex * unit * 2)+1, center.y+1);
-            coord2[2] = new Coord(center.x + (sizex * unit)+1, (center.y - (sizex * unit))-1);
         }
         else {
             coord[0] = new Coord(center.x, center.y);
             coord[1] = new Coord(center.x - (sizex * unit * 2), center.y);
             coord[2] = new Coord(center.x - (sizex * unit), center.y - (sizex * unit));
-
-            coord2[0] = new Coord(center.x+1, center.y+1);
-            coord2[1] = new Coord((center.x - (sizex * unit * 2))-1, center.y+1);
-            coord2[2] = new Coord((center.x - (sizex * unit))-1, (center.y - (sizex * unit))-1);
         }
-        ret[0] = coord;
-        ret[1] = coord2;
-        return ret;
+        return coord;
     }
 
-    Coord[][] makeTriangle3(Coord center, int sizex, int dir) {
-        Coord[][] ret = new Coord[2][3];
+    Coord[] makeTriangle3(Coord center, int sizex, int dir) {
         Coord[] coord = new Coord[3];
-        Coord[] coord2 = new Coord[3];
         if (dir == 1) {
             coord[0] = new Coord(center.x, center.y);
             coord[1] = new Coord(center.x + (sizex * unit * 2), center.y);
             coord[2] = new Coord(center.x, center.y - (sizex * unit * 2));
-
-            coord2[0] = new Coord(center.x-1, center.y+1);
-            coord2[1] = new Coord(center.x + (sizex * unit * 2)+1, center.y+1);
-            coord2[2] = new Coord(center.x-1, center.y - (sizex * unit * 2));
         }
         else {
             coord[0] = new Coord(center.x, center.y);
             coord[1] = new Coord(center.x - (sizex * unit * 2), center.y);
             coord[2] = new Coord(center.x, center.y - (sizex * unit * 2));
-
-            coord2[0] = new Coord(center.x+1, center.y+1);
-            coord2[1] = new Coord((center.x - (sizex * unit * 2))-1, center.y+1);
-            coord2[2] = new Coord(center.x+1, (center.y - (sizex * unit * 2))-1);
         }
-        ret[0] = coord;
-        ret[1] = coord2;
-        return ret;
+        return coord;
     }
 
     void makeShapeCoords() {
         Random rnd = new Random();
-        int max = 8;
+        int max = 11;
         int r = rnd.nextInt(max);
+
+        //r = 8;
+        r = 10;
+        //r = 1;
 
         int a;
         int w;
 
         int sw = getWidth();
         int sh = getHeight();
+
+        System.out.println("unit: "+unit);
+
+
 
         switch(r) {
 
@@ -781,16 +649,15 @@ public class GameFrame extends View {
                 sdy = 100;
 
                 shapeCoords = new Coord[4];
-                shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
-                shapeCoords[1] = new Coord(w + sdx, 0 + sdy);
-                shapeCoords[2] = new Coord(w + sdx, w + sdy);
-                shapeCoords[3] = new Coord(0 + sdx, w + sdy);
+                //shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
+                //shapeCoords[1] = new Coord(w + sdx, 0 + sdy);
+                //shapeCoords[2] = new Coord(w + sdx, w + sdy);
+                //shapeCoords[3] = new Coord(0 + sdx, w + sdy);
 
-                shapeCoords2 = new Coord[4];
-                shapeCoords2[0] = new Coord(0 + sdx-1, 0 + sdy-1);
-                shapeCoords2[1] = new Coord(w + sdx+1, 0 + sdy-1);
-                shapeCoords2[2] = new Coord(w + sdx+1, w + sdy+1);
-                shapeCoords2[3] = new Coord(0 + sdx-1, w + sdy+1);
+                shapeCoords[0] = new Coord(304, 568);
+                shapeCoords[1] = new Coord(772, 570);
+                shapeCoords[2] = new Coord(774, 100);
+                shapeCoords[3] = new Coord(306, 100);
 
                 shapeTypes = new ShapeData.types[7];
                 shapeTypes[0] = ShapeData.types.SQUARE;
@@ -814,7 +681,7 @@ public class GameFrame extends View {
             case 1:
                 //triangle
                 a = sizex * unit * 2;
-                int b = 2*a;
+                int b = 2 * a;
                 w = (int) Math.sqrt((a * a) + (a * a));
                 int w2 = (int) Math.sqrt((b * b) + (b * b));
                 int h = (int) Math.sqrt((b * b) - (w * w));
@@ -822,14 +689,14 @@ public class GameFrame extends View {
                 sdy = 100;
 
                 shapeCoords = new Coord[3];
-                shapeCoords[0] = new Coord(0 + sdx, h + sdy);
-                shapeCoords[1] = new Coord(w2 + sdx, h + sdy);
-                shapeCoords[2] = new Coord(w + sdx, 0 + sdy);
+                //shapeCoords[0] = new Coord(0 + sdx, h + sdy);
+                //shapeCoords[1] = new Coord(w2 + sdx, h + sdy);
+                //shapeCoords[2] = new Coord(w + sdx, 0 + sdy);
 
-                shapeCoords2 = new Coord[3];
-                shapeCoords2[0] = new Coord(0 + sdx-1, h + sdy+1);
-                shapeCoords2[1] = new Coord(w2 + sdx+1, h + sdy+1);
-                shapeCoords2[2] = new Coord(w + sdx+1, 0 + sdy-1);
+                shapeCoords[0] = new Coord(99, 652);
+                shapeCoords[1] = new Coord(1037, 652);
+                shapeCoords[2] = new Coord(569, 183);
+
 
                 shapeTypes = new ShapeData.types[7];
                 shapeTypes[0] = ShapeData.types.SQUARE;
@@ -857,16 +724,15 @@ public class GameFrame extends View {
                 sdy = 100;
 
                 shapeCoords = new Coord[4];
-                shapeCoords[0] = new Coord(0 + sdx, a + sdy);
-                shapeCoords[1] = new Coord((3*a) + sdx, a + sdy);
-                shapeCoords[2] = new Coord((2*a) + sdx, 0 + sdy);
-                shapeCoords[3] = new Coord(a + sdx, 0 + sdy);
+                //shapeCoords[0] = new Coord(0 + sdx, a + sdy);
+                //shapeCoords[1] = new Coord((3*a) + sdx, a + sdy);
+                //shapeCoords[2] = new Coord((2*a) + sdx, 0 + sdy);
+                //shapeCoords[3] = new Coord(a + sdx, 0 + sdy);
 
-                shapeCoords2 = new Coord[4];
-                shapeCoords2[0] = new Coord(0 + sdx-1, a + sdy+1);
-                shapeCoords2[1] = new Coord((3*a) + sdx+1, a + sdy+1);
-                shapeCoords2[2] = new Coord((2*a) + sdx+1, 0 + sdy-1);
-                shapeCoords2[3] = new Coord(a + sdx-1, 0 + sdy-1);
+                shapeCoords[0] = new Coord(42, 432);
+                shapeCoords[1] = new Coord(1038, 432);
+                shapeCoords[2] = new Coord(706, 100);
+                shapeCoords[3] = new Coord(374, 100);
 
                 shapeTypes = new ShapeData.types[7];
                 shapeTypes[0] = ShapeData.types.SQUARE;
@@ -894,16 +760,15 @@ public class GameFrame extends View {
                 sdy = 100;
 
                 shapeCoords = new Coord[4];
-                shapeCoords[0] = new Coord(0 + sdx, a + sdy);
-                shapeCoords[1] = new Coord((2*a) + sdx, a + sdy);
-                shapeCoords[2] = new Coord((3*a) + sdx, 0 + sdy);
-                shapeCoords[3] = new Coord(a + sdx, 0 + sdy);
+                //shapeCoords[0] = new Coord(0 + sdx, a + sdy);
+                //shapeCoords[1] = new Coord((2*a) + sdx, a + sdy);
+                //shapeCoords[2] = new Coord((3*a) + sdx, 0 + sdy);
+                //shapeCoords[3] = new Coord(a + sdx, 0 + sdy);
 
-                shapeCoords2 = new Coord[4];
-                shapeCoords2[0] = new Coord(0 + sdx-1, a + sdy+1);
-                shapeCoords2[1] = new Coord((2*a) + sdx+1, a + sdy+1);
-                shapeCoords2[2] = new Coord((3*a) + sdx+1, 0 + sdy-1);
-                shapeCoords2[3] = new Coord(a + sdx-1, 0 + sdy-1);
+                shapeCoords[0] = new Coord(44, 432);
+                shapeCoords[1] = new Coord(707, 430);
+                shapeCoords[2] = new Coord(1037, 100);
+                shapeCoords[3] = new Coord(375, 99);
 
                 shapeTypes = new ShapeData.types[7];
                 shapeTypes[0] = ShapeData.types.SQUARE;
@@ -931,16 +796,15 @@ public class GameFrame extends View {
                 sdy = 100;
 
                 shapeCoords = new Coord[4];
-                shapeCoords[0] = new Coord(0 + sdx, a + sdy);
-                shapeCoords[1] = new Coord((2*a) + sdx, a + sdy);
-                shapeCoords[2] = new Coord((2*a) + sdx, 0 + sdy);
-                shapeCoords[3] = new Coord(0 + sdx, 0 + sdy);
+                //shapeCoords[0] = new Coord(0 + sdx, a + sdy);
+                //shapeCoords[1] = new Coord((2*a) + sdx, a + sdy);
+                //shapeCoords[2] = new Coord((2*a) + sdx, 0 + sdy);
+                //shapeCoords[3] = new Coord(0 + sdx, 0 + sdy);
 
-                shapeCoords2 = new Coord[4];
-                shapeCoords2[0] = new Coord(0 + sdx-1, a + sdy+1);
-                shapeCoords2[1] = new Coord((2*a) + sdx+1, a + sdy+1);
-                shapeCoords2[2] = new Coord((2*a) + sdx+1, 0 + sdy-1);
-                shapeCoords2[3] = new Coord(0 + sdx-1, 0 + sdy-1);
+                shapeCoords[0] = new Coord(208, 433);
+                shapeCoords[1] = new Coord(871, 431);
+                shapeCoords[2] = new Coord(870, 100);
+                shapeCoords[3] = new Coord(208, 102);
 
                 shapeTypes = new ShapeData.types[7];
                 shapeTypes[0] = ShapeData.types.SQUARE;
@@ -964,37 +828,35 @@ public class GameFrame extends View {
 
             case 5:
                 //hammer
-                //triangle
                 a = sizex * unit * 2;
-                b = a/2;
+                b = a / 2;
                 w = (int) Math.sqrt((a * a) + (a * a));
                 w2 = (int) Math.sqrt((b * b) + (b * b));
-                int w3 = w2/2;
-                int w4 = w/2;
+                int w3 = w2 / 2;
+                int w4 = w / 2;
                 h = (int) Math.sqrt((b * b) - (w * w));
-                sdx = 50+w2;
-                sdy = 100+(4*b);
+                sdx = 50 + w2;
+                sdy = 100 + (4 * b);
 
 
                 shapeCoords = new Coord[8];
-                shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
-                shapeCoords[1] = new Coord(b + sdx, 0 + sdy);
-                shapeCoords[2] = new Coord(b + sdx, sdy-(3*b));
-                shapeCoords[3] = new Coord(0 + sdx+w, sdy-(3*b));
-                shapeCoords[4] = new Coord(0 + (sdx+w)-w4, sdy-((3*b)+w2));
-                shapeCoords[5] = new Coord(sdx-(w/2), sdy-((3*b)+w2));
-                shapeCoords[6] = new Coord(sdx-(w/2), sdy-(3*b));
-                shapeCoords[7] = new Coord(sdx, sdy-(3*b));
+                //shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
+                //shapeCoords[1] = new Coord(b + sdx, 0 + sdy);
+                //shapeCoords[2] = new Coord(b + sdx, sdy-(3*b));
+                //shapeCoords[3] = new Coord(0 + sdx+w, sdy-(3*b));
+                //shapeCoords[4] = new Coord(0 + (sdx+w)-w4, sdy-((3*b)+w2));
+                //shapeCoords[5] = new Coord(sdx-(w/2), sdy-((3*b)+w2));
+                //shapeCoords[6] = new Coord(sdx-(w/2), sdy-(3*b));
+                //shapeCoords[7] = new Coord(sdx, sdy-(3*b));
 
-                shapeCoords2 = new Coord[8];
-                shapeCoords2[0] = new Coord(0 + sdx-1, 0 + sdy+1);
-                shapeCoords2[1] = new Coord(b + sdx+1, 0 + sdy+1);
-                shapeCoords2[2] = new Coord(b + sdx+1, sdy-(3*b)+1);
-                shapeCoords2[3] = new Coord(0 + sdx+w+1, sdy-(3*b)+1);
-                shapeCoords2[4] = new Coord(0 + (sdx+w)-w4+1, sdy-((3*b)+w2)-1);
-                shapeCoords2[5] = new Coord(sdx-(w/2)-1, sdy-((3*b)+w2)-1);
-                shapeCoords2[6] = new Coord(sdx-(w/2)-1, sdy-(3*b)+1);
-                shapeCoords2[7] = new Coord(sdx-1, sdy-(3*b)+1);
+                shapeCoords[0] = new Coord(423, 832);
+                shapeCoords[1] = new Coord(588, 831);
+                shapeCoords[2] = new Coord(589, 334);
+                shapeCoords[3] = new Coord(892, 333);
+                shapeCoords[4] = new Coord(658, 100);
+                shapeCoords[5] = new Coord(189, 99);
+                shapeCoords[6] = new Coord(189, 333);
+                shapeCoords[7] = new Coord(424, 335);
 
 
                 shapeTypes = new ShapeData.types[7];
@@ -1025,16 +887,15 @@ public class GameFrame extends View {
                 sdy = 100;
 
                 shapeCoords = new Coord[4];
-                shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
-                shapeCoords[1] = new Coord(w + sdx, 0 + sdy);
-                shapeCoords[2] = new Coord(w + sdx, w + sdy);
-                shapeCoords[3] = new Coord(0 + sdx, w + sdy);
+                //shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
+                //shapeCoords[1] = new Coord(w + sdx, 0 + sdy);
+                //shapeCoords[2] = new Coord(w + sdx, w + sdy);
+                //shapeCoords[3] = new Coord(0 + sdx, w + sdy);
 
-                shapeCoords2 = new Coord[4];
-                shapeCoords2[0] = new Coord(0 + sdx-1, 0 + sdy-1);
-                shapeCoords2[1] = new Coord(w + sdx+1, 0 + sdy-1);
-                shapeCoords2[2] = new Coord(w + sdx+1, w + sdy+1);
-                shapeCoords2[3] = new Coord(0 + sdx-1, w + sdy+1);
+                shapeCoords[0] = new Coord(304, 568);
+                shapeCoords[1] = new Coord(772, 570);
+                shapeCoords[2] = new Coord(774, 100);
+                shapeCoords[3] = new Coord(306, 100);
 
                 shapeTypes = new ShapeData.types[6];
                 shapeTypes[0] = ShapeData.types.TRIANGLE2;
@@ -1057,21 +918,20 @@ public class GameFrame extends View {
                 //trapeze 2
                 a = sizex * unit * 2;
                 w = (int) Math.sqrt((a * a) + (a * a));
-                w2 = w/2;
+                w2 = w / 2;
                 sdx = 50;
                 sdy = 100;
 
                 shapeCoords = new Coord[4];
-                shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
-                shapeCoords[1] = new Coord(w2 + sdx, 0 + sdy);
-                shapeCoords[2] = new Coord(w + w2 + sdx, w + sdy);
-                shapeCoords[3] = new Coord(0 + sdx, w + sdy);
+                //shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
+                //shapeCoords[1] = new Coord(w2 + sdx, 0 + sdy);
+                //shapeCoords[2] = new Coord(w + w2 + sdx, w + sdy);
+                //shapeCoords[3] = new Coord(0 + sdx, w + sdy);
 
-                shapeCoords2 = new Coord[4];
-                shapeCoords2[0] = new Coord(0 + sdx-1, 0 + sdy-1);
-                shapeCoords2[1] = new Coord(w2 + sdx+1, 0 + sdy-1);
-                shapeCoords2[2] = new Coord(w + w2+ sdx+1, w + sdy+1);
-                shapeCoords2[3] = new Coord(0 + sdx-1, w + sdy+1);
+                shapeCoords[0] = new Coord(189, 569);
+                shapeCoords[1] = new Coord(892, 569);
+                shapeCoords[2] = new Coord(423, 101);
+                shapeCoords[3] = new Coord(190, 102);
 
                 shapeTypes = new ShapeData.types[7];
                 shapeTypes[0] = ShapeData.types.SQUARE;
@@ -1091,13 +951,142 @@ public class GameFrame extends View {
                 shapeDir[5] = 1;
                 shapeDir[6] = 1;
                 break;
+            case 8:
+                //bird1
+                shapeCoords = new Coord[13];
+
+                shapeCoords[0] = new Coord(392, 1112);
+                shapeCoords[1] = new Coord(723, 1112);
+                shapeCoords[2] = new Coord(888, 946);
+                shapeCoords[3] = new Coord(888, 712);
+                shapeCoords[4] = new Coord(771, 595);
+                shapeCoords[5] = new Coord(770, 526);
+                shapeCoords[6] = new Coord(936, 526);
+                shapeCoords[7] = new Coord(770, 360);
+                shapeCoords[8] = new Coord(654, 478);
+                shapeCoords[9] = new Coord(654, 712);
+                shapeCoords[10] = new Coord(722, 780);
+                shapeCoords[11] = new Coord(253, 780);
+                shapeCoords[12] = new Coord(487, 1013);
+
+                shapeTypes = new ShapeData.types[7];
+                shapeTypes[0] = ShapeData.types.SQUARE;
+                shapeTypes[1] = ShapeData.types.TRIANGLE1;
+                shapeTypes[2] = ShapeData.types.TRIANGLE1;
+                shapeTypes[3] = ShapeData.types.TRIANGLE2;
+                shapeTypes[4] = ShapeData.types.TRIANGLE3;
+                shapeTypes[5] = ShapeData.types.TRIANGLE3;
+                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
+
+                shapeDir = new int[7];
+                shapeDir[0] = 1;
+                shapeDir[1] = 1;
+                shapeDir[2] = 1;
+                shapeDir[3] = 1;
+                shapeDir[4] = 1;
+                shapeDir[5] = 1;
+                shapeDir[6] = 1;
+
+                break;
+
+            case 9:
+                //rocket
+                shapeCoords = new Coord[10];
+
+
+                shapeCoords[0] = new Coord(433, 1097);
+                shapeCoords[1] = new Coord(598, 931);
+                shapeCoords[2] = new Coord(763, 1095);
+                shapeCoords[3] = new Coord(762, 763);
+                shapeCoords[4] = new Coord(928, 929);
+                shapeCoords[5] = new Coord(928, 763);
+                shapeCoords[6] = new Coord(595, 432);
+                shapeCoords[7] = new Coord(266, 765);
+                shapeCoords[8] = new Coord(267, 931);
+                shapeCoords[9] = new Coord(432, 765);
+
+
+                shapeTypes = new ShapeData.types[7];
+                shapeTypes[0] = ShapeData.types.SQUARE;
+                shapeTypes[1] = ShapeData.types.TRIANGLE1;
+                shapeTypes[2] = ShapeData.types.TRIANGLE1;
+                shapeTypes[3] = ShapeData.types.TRIANGLE2;
+                shapeTypes[4] = ShapeData.types.TRIANGLE3;
+                shapeTypes[5] = ShapeData.types.TRIANGLE3;
+                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
+
+                shapeDir = new int[7];
+                shapeDir[0] = 1;
+                shapeDir[1] = 1;
+                shapeDir[2] = 1;
+                shapeDir[3] = 1;
+                shapeDir[4] = 1;
+                shapeDir[5] = 1;
+                shapeDir[6] = 2;
+
+                break;
+
+            case 10:
+                //cat
+                shapeCoords = new Coord[17];
+                shapeCoords[0] = new Coord(466, 1363);
+                shapeCoords[1] = new Coord(797, 1362);
+                shapeCoords[2] = new Coord(1000, 1245);
+                shapeCoords[3] = new Coord(1043, 1086);
+                shapeCoords[4] = new Coord(840, 1203);
+                shapeCoords[5] = new Coord(797, 1362);
+                shapeCoords[6] = new Coord(796, 1031);
+                shapeCoords[7] = new Coord(563, 796);
+                shapeCoords[8] = new Coord(622, 738);
+                shapeCoords[9] = new Coord(622, 504);
+                shapeCoords[10] = new Coord(505, 621);
+                shapeCoords[11] = new Coord(389, 503);
+                shapeCoords[12] = new Coord(388, 738);
+                shapeCoords[13] = new Coord(505, 855);
+                shapeCoords[14] = new Coord(398, 962);
+                shapeCoords[15] = new Coord(564, 1128);
+                shapeCoords[16] = new Coord(563, 1265);
+
+
+                shapeTypes = new ShapeData.types[7];
+                shapeTypes[0] = ShapeData.types.SQUARE;
+                shapeTypes[1] = ShapeData.types.TRIANGLE1;
+                shapeTypes[2] = ShapeData.types.TRIANGLE1;
+                shapeTypes[3] = ShapeData.types.TRIANGLE2;
+                shapeTypes[4] = ShapeData.types.TRIANGLE3;
+                shapeTypes[5] = ShapeData.types.TRIANGLE3;
+                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
+
+                shapeDir = new int[7];
+                shapeDir[0] = 1;
+                shapeDir[1] = 1;
+                shapeDir[2] = 1;
+                shapeDir[3] = 1;
+                shapeDir[4] = 1;
+                shapeDir[5] = 1;
+                shapeDir[6] = 2;
+
+                break;
         }
+
+
 
         sminx = 999999;
         smaxx = -999999;
         sminy = 999999;
         smaxx = -999999;
         Coord coord;
+
+        float uc = unit / 83f;
+        //float uc = 1;
+
+        System.out.println("unit: "+unit+" uc: "+uc);
+
+        for (int i = 0; i < shapeCoords.length; i++) {
+            shapeCoords[i].x*=uc;
+            shapeCoords[i].y*=uc;
+        }
+
         for (int i = 0; i < shapeCoords.length; i++) {
             coord = shapeCoords[i];
             if (coord.x < sminx)
@@ -1124,14 +1113,6 @@ public class GameFrame extends View {
             shapeCoords[i].x += hd;
             shapeCoords[i].y += vd;
         }
-
-        for (int i = 0; i < shapeCoords2.length; i++) {
-            shapeCoords2[i].x += hd;
-            shapeCoords2[i].y += vd;
-        }
-
-
-
     }
 
     Coord getCentroid(Coord[] coords) {
@@ -1472,29 +1453,6 @@ public class GameFrame extends View {
         return isWon;
     }
 
-    void logCoords() {
-        ShapeData sd;
-        for (int i = 0; i < shapes.size(); i++) {
-            sd = shapes.elementAt(i);
-            logCoord(sd);
-        }
-    }
-
-    void logCoord(ShapeData sd) {
-        ShapeData.types type;
-        Coord[] coords;
-        Coord centr;
-        type = sd.getType();
-        coords = sd.getCoords();
-        //parent.showMess("type: "+type+" color: "+sd.getPaint().getColor());
-        coords = rotateCoords(coords, sd.getCenter(), sd.getDeg());
-        String s = type.toString();
-        for (int i = 0; i < coords.length; i++) {
-            s+=i+". x: "+coords[i].x+" y: "+coords[i].y+";";
-        }
-        //System.out.println(s);
-    }
-
     void saveCoord(int x, int y) {
         ShapeData sd;
         Coord coord = new Coord(x,y);
@@ -1524,8 +1482,8 @@ public class GameFrame extends View {
             d = distance(coords[i],coord);
             if (d < 50 && d < dist ) {
                 ok = true;
-                for (int j = 0; j < aktCoords.size(); j++) {
-                    if (Math.abs(aktCoords.elementAt(j).x - coords[i].x) < 10 && Math.abs(aktCoords.elementAt(j).y - coords[i].y) < 10)
+                if (aktCoords.size() > 0) {
+                    if (Math.abs(aktCoords.elementAt(aktCoords.size()-1).x - coords[i].x) < 10 && Math.abs(aktCoords.elementAt(aktCoords.size()-1).y - coords[i].y) < 10)
                         ok = false;
                 }
                 if (ok) {
@@ -1548,6 +1506,24 @@ public class GameFrame extends View {
             c = aktCoords.elementAt(i);
             System.out.println(c.x+", "+c.y);
         }*/
+    }
+
+    public boolean containsPoly(Coord[] points, Coord coord) {
+        int i;
+        int j;
+        boolean result = false;
+        for (i = 0, j = points.length - 1; i < points.length; j = i++) {
+            if ((points[i].y > coord.y) != (points[j].y > coord.y) &&
+                    (coord.x < (points[j].x - points[i].x) * (coord.y - points[i].y) / (points[j].y-points[i].y) + points[i].x)) {
+                result = !result;
+            }
+        }
+        return result;
+    }
+
+    private void playSnapSound() {
+        final MediaPlayer mp = MediaPlayer.create(context, R.raw.snap);
+        mp.start();
     }
 
 }
