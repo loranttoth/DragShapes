@@ -1,5 +1,6 @@
 package loranttoth.dragshapes;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -13,9 +14,9 @@ public class ShapeMainActivity extends AbstractActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.shape_game_frame);
-        mCanvas = (GameFrame) findViewById(R.id.game_frame);
-        mCanvas.setParent(this);
+        final ShapeMainActivity self = this;
+        Intent intent = new Intent(self, LevelsActivity.class);
+        startActivity(intent);
     }
 
     @Override

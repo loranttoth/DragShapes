@@ -29,7 +29,7 @@ public class GameFrame extends View {
     Paint paintbig2;
     int[] btn3;
 
-    ShapeMainActivity parent;
+    //GameActivity parent;
 
     Vector<ShapeData> shapes;
 
@@ -107,9 +107,9 @@ public class GameFrame extends View {
 
     }
 
-    public void setParent(ShapeMainActivity parent) {
-        this.parent = parent;
-    }
+    //public void setParent(GameActivity parent) {
+    //    this.parent = parent;
+   // }
 
 
     @Override
@@ -204,6 +204,10 @@ public class GameFrame extends View {
                 float allnum = (smaxx-sminx)*(smaxy-sminy);
                 float percent = emptyPixelNum/allnum;
                 canvas.drawText("ISWON: " + isWon + " empty: " + emptyPixelNum + " / " + allnum + " " + percent + "% ", 50, 20, tpaint);
+                if (isWon) {
+                    isWon = false;
+                    shapes = new Vector<>();
+                }
             }
         }
 
@@ -340,7 +344,7 @@ public class GameFrame extends View {
                     try{
 
                     } catch (Exception e) {
-                        parent.showMess("error: " + e.getLocalizedMessage());
+                        //parent.showMess("error: " + e.getLocalizedMessage());
                     }
 
                     if (bitmap != null) {
@@ -533,7 +537,7 @@ public class GameFrame extends View {
                 ShapeData data = new ShapeData(shapeId++, type, coords, center, color, deg, sizex, sizey, irany, paint1);
                 shapes.addElement(data);
             }catch (Exception e) {
-                parent.showMess("error: "+e.getLocalizedMessage());
+                //parent.showMess("error: "+e.getLocalizedMessage());
             }
         }
     }
@@ -622,11 +626,11 @@ public class GameFrame extends View {
 
     void makeShapeCoords() {
         Random rnd = new Random();
-        int max = 11;
+        int max = 14;
         int r = rnd.nextInt(max);
 
         //r = 8;
-        r = 10;
+        //r = 13;
         //r = 1;
 
         int a;
@@ -1067,6 +1071,134 @@ public class GameFrame extends View {
                 shapeDir[6] = 2;
 
                 break;
+            case 11:
+                //fish
+                shapeCoords = new Coord[18];
+
+                shapeCoords[0] = new Coord(511, 763);
+                shapeCoords[1] = new Coord(511, 680);
+                shapeCoords[2] = new Coord(535, 655);
+                shapeCoords[3] = new Coord(651, 773);
+                shapeCoords[4] = new Coord(651, 539);
+                shapeCoords[5] = new Coord(676, 514);
+                shapeCoords[6] = new Coord(675, 431);
+                shapeCoords[7] = new Coord(792, 548);
+                shapeCoords[8] = new Coord(909, 431);
+                shapeCoords[9] = new Coord(792, 314);
+                shapeCoords[10] = new Coord(675, 431);
+                shapeCoords[11] = new Coord(668, 346);
+                shapeCoords[12] = new Coord(643, 322);
+                shapeCoords[13] = new Coord(643, 88);
+                shapeCoords[14] = new Coord(527, 204);
+                shapeCoords[15] = new Coord(502, 180);
+                shapeCoords[16] = new Coord(509, 100);
+                shapeCoords[17] = new Coord(179, 432);
+
+                shapeTypes = new ShapeData.types[7];
+                shapeTypes[0] = ShapeData.types.SQUARE;
+                shapeTypes[1] = ShapeData.types.TRIANGLE1;
+                shapeTypes[2] = ShapeData.types.TRIANGLE1;
+                shapeTypes[3] = ShapeData.types.TRIANGLE2;
+                shapeTypes[4] = ShapeData.types.TRIANGLE3;
+                shapeTypes[5] = ShapeData.types.TRIANGLE3;
+                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
+
+
+                shapeDir = new int[8];
+                shapeDir[0] = 1;
+                shapeDir[1] = 1;
+                shapeDir[2] = 1;
+                shapeDir[3] = 1;
+                shapeDir[4] = 1;
+                shapeDir[5] = 1;
+                shapeDir[6] = 2;
+
+                break;
+
+            case 12:
+                //horse
+                shapeCoords = new Coord[18];
+
+                shapeCoords[0] = new Coord(263, 1224);
+                shapeCoords[1] = new Coord(323, 998);
+                shapeCoords[2] = new Coord(241, 854);
+                shapeCoords[3] = new Coord(474, 1089);
+                shapeCoords[4] = new Coord(482, 1117);
+                shapeCoords[5] = new Coord(648, 1117);
+                shapeCoords[6] = new Coord(482, 951);
+                shapeCoords[7] = new Coord(695, 735);
+                shapeCoords[8] = new Coord(929, 735);
+                shapeCoords[9] = new Coord(813, 619);
+                shapeCoords[10] = new Coord(646, 618);
+                shapeCoords[11] = new Coord(645, 453);
+                shapeCoords[12] = new Coord(811, 453);
+                shapeCoords[13] = new Coord(645, 287);
+                shapeCoords[14] = new Coord(480, 454);
+                shapeCoords[15] = new Coord(481, 619);
+                shapeCoords[16] = new Coord(241, 854);
+                shapeCoords[17] = new Coord(181, 1080);
+
+                shapeTypes = new ShapeData.types[7];
+                shapeTypes[0] = ShapeData.types.SQUARE;
+                shapeTypes[1] = ShapeData.types.TRIANGLE1;
+                shapeTypes[2] = ShapeData.types.TRIANGLE1;
+                shapeTypes[3] = ShapeData.types.TRIANGLE2;
+                shapeTypes[4] = ShapeData.types.TRIANGLE3;
+                shapeTypes[5] = ShapeData.types.TRIANGLE3;
+                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
+
+
+                shapeDir = new int[8];
+                shapeDir[0] = 1;
+                shapeDir[1] = 1;
+                shapeDir[2] = 1;
+                shapeDir[3] = 1;
+                shapeDir[4] = 1;
+                shapeDir[5] = 1;
+                shapeDir[6] = 2;
+
+                break;
+
+            case 13:
+                //house
+                shapeCoords = new Coord[11];
+
+                shapeCoords[0] = new Coord(126,1296);
+                shapeCoords[1] = new Coord(622,1295);
+                shapeCoords[2] = new Coord(621,1129);
+                shapeCoords[3] = new Coord(704,1131);
+                shapeCoords[4] = new Coord(372,799);
+                shapeCoords[5] = new Coord(323,847);
+                shapeCoords[6] = new Coord(323,613);
+                shapeCoords[7] = new Coord(207,731);
+                shapeCoords[8] = new Coord(207,965);
+                shapeCoords[9] = new Coord(42,1131);
+                shapeCoords[10] = new Coord(125,1131);
+
+
+                shapeTypes = new ShapeData.types[7];
+                shapeTypes[0] = ShapeData.types.SQUARE;
+                shapeTypes[1] = ShapeData.types.TRIANGLE1;
+                shapeTypes[2] = ShapeData.types.TRIANGLE1;
+                shapeTypes[3] = ShapeData.types.TRIANGLE2;
+                shapeTypes[4] = ShapeData.types.TRIANGLE3;
+                shapeTypes[5] = ShapeData.types.TRIANGLE3;
+                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
+
+
+                shapeDir = new int[8];
+                shapeDir[0] = 1;
+                shapeDir[1] = 1;
+                shapeDir[2] = 1;
+                shapeDir[3] = 1;
+                shapeDir[4] = 1;
+                shapeDir[5] = 1;
+                shapeDir[6] = 1;
+
+                break;
+
+
+
         }
 
 
@@ -1480,7 +1612,7 @@ public class GameFrame extends View {
 
         for (int i = 0; i < coords.length; i++) {
             d = distance(coords[i],coord);
-            if (d < 50 && d < dist ) {
+            if (d < 20 && d < dist ) {
                 ok = true;
                 if (aktCoords.size() > 0) {
                     if (Math.abs(aktCoords.elementAt(aktCoords.size()-1).x - coords[i].x) < 10 && Math.abs(aktCoords.elementAt(aktCoords.size()-1).y - coords[i].y) < 10)
