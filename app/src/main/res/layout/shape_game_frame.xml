@@ -6,9 +6,11 @@
     android:paddingBottom="0px"
     tools:context="loranttoth.dragshapes.ShapeMainActivity">
 
-    <loranttoth.dragshapes.GameFrame
-        android:id="@+id/game_frame"
+    <LinearLayout
+        android:id="@+id/layoutgame"
+        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:textColor="#FFFFFF" />
+        android:background="@android:color/white"
+/>
 </RelativeLayout>

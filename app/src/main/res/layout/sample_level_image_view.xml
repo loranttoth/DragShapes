@@ -4,14 +4,11 @@
     android:layout_height="match_parent">
 
     <loranttoth.dragshapes.LevelImageView
-        android:layout_width="300dp"
-        android:layout_height="300dp"
-        android:background="#ccc"
-        android:paddingLeft="20dp"
-        android:paddingBottom="40dp"
-        app:exampleColor="#33b5e5"
-        app:exampleDimension="24sp"
-        app:exampleDrawable="@android:drawable/ic_menu_add"
-        app:exampleString="Hello, LevelImageView" />
+        android:tag="levelImage1"
+        android:clickable="false"
+        android:focusable="false"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        />
 
 </FrameLayout>

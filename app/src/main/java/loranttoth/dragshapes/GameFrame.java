@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PorterDuff;
+import android.media.Image;
 import android.media.MediaPlayer;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -14,6 +15,10 @@ import android.view.View;
 
 import java.util.Random;
 import java.util.Vector;
+
+import loranttoth.dragshapes.data.ImageData;
+import loranttoth.dragshapes.data.ShapeData;
+import loranttoth.dragshapes.data.ShapeTypes;
 
 /**
  * Created by freestate on 2018.08.16..
@@ -29,13 +34,7 @@ public class GameFrame extends View {
     Paint paintbig2;
     int[] btn3;
 
-    //GameActivity parent;
-
-    Vector<ShapeData> shapes;
-
-    int unit = 50;
-    int sizex = 2;
-    int sizey = 2;
+    GameActivity parent;
 
     int sdx;
     int sdy;
@@ -59,30 +58,17 @@ public class GameFrame extends View {
 
     Vector<Coord> aktCoords;
 
-    private static final int INVALID_POINTER_ID = -1;
-    private float fX, fY, sX, sY;
-    private float nfX, nfY, nsX, nsY;
-    private int ptrID1, ptrID2;
-    private float mAngle;
-
-    Coord[] shapeCoords;
+    ImageData imageData = null;
 
     int shapeColor = Color.LTGRAY;
     int shapeColor2 = Color.DKGRAY;
-
-    int sminx;
-    int smaxx;
-    int sminy;
-    int smaxy;
-
     float emptyPixelNum = 0;
-
-    ShapeData.types[] shapeTypes;
-    int[] shapeDir;
 
     boolean isSaveMode = false;
 
     boolean isWon = false;
+
+    int level = 0;
 
     public GameFrame(Context c, AttributeSet attrs) {
         super(c, attrs);
@@ -99,18 +85,19 @@ public class GameFrame extends View {
         paintbig2.setStyle(Paint.Style.STROKE);
         paintbig2.setStrokeWidth(10);
 
-        shapes = new Vector<>();
-
         aktSnapCoords = new Vector<>();
 
         aktCoords = new Vector<>();
 
     }
 
-    //public void setParent(GameActivity parent) {
-    //    this.parent = parent;
-   // }
+    public void setParent(GameActivity parent) {
+        this.parent = parent;
+    }
 
+    public void setLevel(int level_) {
+        level = level_;
+    }
 
     @Override
     protected void onDraw(Canvas canvas) {
@@ -119,13 +106,12 @@ public class GameFrame extends View {
         int maxy = getHeight();
         int w = getWidth();
         int h = getHeight();
-        if (shapes.size() == 0 && maxx > 0 && maxy > 0){
+        if (imageData == null && maxx > 0 && maxy > 0){
             int min = Math.min(w, h);
-            unit = min/13;
+            ShapeData.unit = min/13;
             //unit = 100;
             aktShape = null;
-            makeShapeCoords();
-            makeShapes();
+            makeImageData();
 
             int bw = (w / 3)-50;
 
@@ -154,8 +140,8 @@ public class GameFrame extends View {
         ShapeData sd;
         Coord coord;
         if (!isWon) {
-            for (int i = 0; i < shapes.size(); i++) {
-                sd = shapes.elementAt(i);
+            for (int i = 0; i < imageData.shapes.size(); i++) {
+                sd = imageData.shapes.elementAt(i);
                 drawShape(sd, canvas, false);
                 drawShape(sd, canvasb, true);
             }
@@ -198,15 +184,16 @@ public class GameFrame extends View {
             //if (bitmap2 != null)
             //    canvas.drawBitmap(bitmap2, 100, (getHeight()/2)+200, paint);
 
-            if (!isWon && checkAllConnected()) {
+            if (!isWon && imageData.checkAllConnected()) {
                 isWon = checkVictory();
                 //boolean isWon = true;
-                float allnum = (smaxx-sminx)*(smaxy-sminy);
+                float allnum = (imageData.smaxx-imageData.sminx)*(imageData.smaxy-imageData.sminy);
                 float percent = emptyPixelNum/allnum;
                 canvas.drawText("ISWON: " + isWon + " empty: " + emptyPixelNum + " / " + allnum + " " + percent + "% ", 50, 20, tpaint);
                 if (isWon) {
-                    isWon = false;
-                    shapes = new Vector<>();
+                    //isWon = false;
+                    //shapes = new Vector<>();
+                    //win modal
                 }
             }
         }
@@ -226,14 +213,14 @@ public class GameFrame extends View {
         if (canvas == null)
             return;
         Path path;
-        ShapeData.types type;
+        ShapeTypes.types type;
         Coord[] coords;
         Coord centr;
         canvas.save();
         type = sd.getType();
         coords = sd.getCoords();
         //parent.showMess("type: "+type+" color: "+sd.getPaint().getColor());
-        coords = rotateCoords(coords, sd.getCenter(), sd.getDeg());
+        coords = sd.rotateCoords(sd.getCenter(), sd.getDeg());
         path = new Path();
         path.setFillType(Path.FillType.EVEN_ODD);
         path.moveTo(coords[0].x, coords[0].y);
@@ -277,11 +264,11 @@ public class GameFrame extends View {
         Path path;
         canvas.save();
         path = new Path();
-        path.moveTo(shapeCoords[0].x, shapeCoords[0].y);
-        for (int i = 1; i < shapeCoords.length; i++) {
-            path.lineTo(shapeCoords[i].x, shapeCoords[i].y);
+        path.moveTo(imageData.shapeCoords[0].x, imageData.shapeCoords[0].y);
+        for (int i = 1; i < imageData.shapeCoords.length; i++) {
+            path.lineTo(imageData.shapeCoords[i].x, imageData.shapeCoords[i].y);
         }
-        path.lineTo(shapeCoords[0].x, shapeCoords[0].y);
+        path.lineTo(imageData.shapeCoords[0].x, imageData.shapeCoords[0].y);
         path.close();
         canvas.drawPath(path, paintbig2);
         canvas.restore();
@@ -289,25 +276,25 @@ public class GameFrame extends View {
         canvas.save();
         path = new Path();
         path.setFillType(Path.FillType.EVEN_ODD);
-        path.moveTo(shapeCoords[0].x, shapeCoords[0].y);
-        for (int i = 1; i < shapeCoords.length; i++) {
-            path.lineTo(shapeCoords[i].x, shapeCoords[i].y);
+        path.moveTo(imageData.shapeCoords[0].x, imageData.shapeCoords[0].y);
+        for (int i = 1; i < imageData.shapeCoords.length; i++) {
+            path.lineTo(imageData.shapeCoords[i].x, imageData.shapeCoords[i].y);
         }
-        path.lineTo(shapeCoords[0].x, shapeCoords[0].y);
+        path.lineTo(imageData.shapeCoords[0].x, imageData.shapeCoords[0].y);
         path.close();
         canvas.drawPath(path, paintbig);
         canvas.restore();
     }
 
     void drawCoords(ShapeData sd, Canvas canvas, int y) {
-        ShapeData.types type;
+        ShapeTypes.types type;
         Coord[] coords;
         Coord centr;
         canvas.save();
         type = sd.getType();
         coords = sd.getCoords();
         //parent.showMess("type: "+type+" color: "+sd.getPaint().getColor());
-        coords = rotateCoords(coords, sd.getCenter(), sd.getDeg());
+        coords = sd.rotateCoords(sd.getCenter(), sd.getDeg());
         Paint paint = new Paint();
         paint.setColor(Color.BLACK);
         paint.setTextSize(18);
@@ -351,10 +338,10 @@ public class GameFrame extends View {
                         //int pcol = bitmap.getPixel(x, y);
                         Coord coord = new Coord(x, y);
                         //aktShape = null;
-                        for (int i = 0; i < shapes.size(); i++) {
+                        for (int i = 0; i < imageData.shapes.size(); i++) {
                             //if (shapes.elementAt(i).getColor() == pcol) {
-                            if (containsPoly(shapes.elementAt(i).getCoords(), coord)) {
-                                aktShape = shapes.elementAt(i);
+                            if (containsPoly(imageData.shapes.elementAt(i).getCoords(), coord)) {
+                                aktShape = imageData.shapes.elementAt(i);
                                 isDrag = true;
                                 invalidate();
                                 break;
@@ -479,793 +466,24 @@ public class GameFrame extends View {
         return true;
     }
 
-    void makeShapes() {
+    void makeImageData() {
 
         Random rnd = new Random();
-
         int w = getWidth();
         int h = getHeight();
+        if (level >= ImageData.max)
+            level = rnd.nextInt(ImageData.max);
+        imageData = new ImageData(level);
+        imageData.makeShapeCoords(w, h);
+        imageData.makeShapes(w, h);
 
-        for (int i = 0; i < shapeTypes.length; i++) {
-            try {
-                Paint paint1 = new Paint(Paint.ANTI_ALIAS_FLAG);
-                int x = rnd.nextInt(w-200)+50;
-                int y = rnd.nextInt((h/2)-200) + (h/2)+100;
-                Coord center = new Coord(x, y);
-                //int size = rnd.nextInt(3) + 1;
-                //int sizex = 2;
-                //int sizey = 2;
-                int irany = rnd.nextInt(2);
-                int r = rnd.nextInt(255);
-                int g = rnd.nextInt(255);
-                int b = rnd.nextInt(255);
-                int color = Color.rgb(r, g, b);
-                int deg = rnd.nextInt(360 / 15) * 15;
-                paint1.setColor(color);
-
-                //int t = rnd.nextInt(ShapeData.types.values().length);
-                //ShapeData.types type = ShapeData.types.values()[t];
-                ShapeData.types type = shapeTypes[i];
-                Coord[] coords = null;
-                switch (type) {
-                    case SQUARE:
-                        coords = makeSquare(center, sizex);
-                        center = new Coord(center.x+(sizex*unit/2),center.y-(sizex*unit/2));
-                        break;
-                    case RECTANGLE:
-                        coords = makeRectangle(center, sizex, sizey);
-                        center = new Coord(center.x+(sizex*unit/2),center.y-(sizey*unit/2));
-                        break;
-                    case TRIANGLE1:
-                        coords = makeTriangle1(center, sizex, shapeDir[i]);
-                        center = getCentroid(coords);
-                        break;
-                    case TRIANGLE2:
-                        coords = makeTriangle2(center, sizex,shapeDir[i]);
-                        center = getCentroid(coords);
-                        break;
-                    case TRIANGLE3:
-                        coords = makeTriangle3(center, sizex,shapeDir[i]);
-                        center = getCentroid(coords);
-                        break;
-                    case PARALELOGRAMA:
-                        coords = makeParalelograma(center, sizex, shapeDir[i]);
-                        center = new Coord(center.x,center.y-(sizex*unit/2));
-                        break;
-                }
-
-                ShapeData data = new ShapeData(shapeId++, type, coords, center, color, deg, sizex, sizey, irany, paint1);
-                shapes.addElement(data);
-            }catch (Exception e) {
-                //parent.showMess("error: "+e.getLocalizedMessage());
-            }
-        }
-    }
-
-    Coord[] makeSquare(Coord center, int size) {
-        Coord[] coord = new Coord[4];
-        coord[0] = new Coord(center.x, center.y);
-        coord[1] = new Coord(center.x + (size*unit), center.y);
-        coord[2] = new Coord(center.x + (size*unit), center.y - (size*unit));
-        coord[3] = new Coord(center.x , center.y - (size*unit));
-
-        return coord;
-    }
-
-    Coord[] makeParalelograma(Coord center, int sizex, int dir) {
-        Coord[] coord = new Coord[4];
-        if (dir == 1) {
-            coord[0] = new Coord(center.x, center.y);
-            coord[1] = new Coord(center.x + (sizex*unit), center.y- (sizex*unit));
-            coord[2] = new Coord(center.x, center.y - (sizex*unit));
-            coord[3] = new Coord(center.x - (sizex*unit), center.y);
-        }
-        else {
-            coord[0] = new Coord(center.x, center.y);
-            coord[1] = new Coord(center.x + (sizex*unit), center.y);
-            coord[2] = new Coord(center.x, center.y - (sizex*unit));
-            coord[3] = new Coord(center.x - (sizex*unit), center.y - (sizex*unit));
-        }
-        return coord;
-    }
-
-    Coord[] makeRectangle(Coord center, int sizex, int sizey) {
-        Coord[] coord = new Coord[4];
-
-        coord[0] = new Coord(center.x, center.y);
-        coord[1] = new Coord(center.x + (sizex*unit), center.y);
-        coord[2] = new Coord(center.x + (sizex*unit), center.y - (sizey*unit));
-        coord[3] = new Coord(center.x , center.y - (sizey*unit));
-        return coord;
-    }
-
-    Coord[] makeTriangle1(Coord center, int sizex, int dir) {
-        Coord[] coord = new Coord[3];
-        if (dir == 1) {
-            coord[0] = new Coord(center.x, center.y);
-            coord[1] = new Coord(center.x + (sizex * unit), center.y);
-            coord[2] = new Coord(center.x, center.y - (sizex * unit));
-        }
-        else {
-            coord[0] = new Coord(center.x, center.y);
-            coord[1] = new Coord(center.x - (sizex * unit), center.y);
-            coord[2] = new Coord(center.x, center.y - (sizex * unit));
-        }
-        return coord;
-    }
-
-    Coord[] makeTriangle2(Coord center, int sizex, int dir) {
-        Coord[] coord = new Coord[3];
-        if (dir == 1) {
-            coord[0] = new Coord(center.x, center.y);
-            coord[1] = new Coord(center.x + (sizex * unit * 2), center.y);
-            coord[2] = new Coord(center.x + (sizex * unit), center.y - (sizex * unit));
-        }
-        else {
-            coord[0] = new Coord(center.x, center.y);
-            coord[1] = new Coord(center.x - (sizex * unit * 2), center.y);
-            coord[2] = new Coord(center.x - (sizex * unit), center.y - (sizex * unit));
-        }
-        return coord;
-    }
-
-    Coord[] makeTriangle3(Coord center, int sizex, int dir) {
-        Coord[] coord = new Coord[3];
-        if (dir == 1) {
-            coord[0] = new Coord(center.x, center.y);
-            coord[1] = new Coord(center.x + (sizex * unit * 2), center.y);
-            coord[2] = new Coord(center.x, center.y - (sizex * unit * 2));
-        }
-        else {
-            coord[0] = new Coord(center.x, center.y);
-            coord[1] = new Coord(center.x - (sizex * unit * 2), center.y);
-            coord[2] = new Coord(center.x, center.y - (sizex * unit * 2));
-        }
-        return coord;
-    }
-
-    void makeShapeCoords() {
-        Random rnd = new Random();
-        int max = 14;
-        int r = rnd.nextInt(max);
-
-        //r = 8;
-        //r = 13;
-        //r = 1;
-
-        int a;
-        int w;
-
-        int sw = getWidth();
-        int sh = getHeight();
-
-        System.out.println("unit: "+unit);
-
-
-
-        switch(r) {
-
-            case 0:
-                //square
-                a = sizex * unit * 2;
-                w = (int) Math.sqrt((a * a) + (a * a));
-                sdx = 50;
-                sdy = 100;
-
-                shapeCoords = new Coord[4];
-                //shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
-                //shapeCoords[1] = new Coord(w + sdx, 0 + sdy);
-                //shapeCoords[2] = new Coord(w + sdx, w + sdy);
-                //shapeCoords[3] = new Coord(0 + sdx, w + sdy);
-
-                shapeCoords[0] = new Coord(304, 568);
-                shapeCoords[1] = new Coord(772, 570);
-                shapeCoords[2] = new Coord(774, 100);
-                shapeCoords[3] = new Coord(306, 100);
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-                shapeDir = new int[7];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 1;
-
-                break;
-            case 1:
-                //triangle
-                a = sizex * unit * 2;
-                int b = 2 * a;
-                w = (int) Math.sqrt((a * a) + (a * a));
-                int w2 = (int) Math.sqrt((b * b) + (b * b));
-                int h = (int) Math.sqrt((b * b) - (w * w));
-                sdx = 50;
-                sdy = 100;
-
-                shapeCoords = new Coord[3];
-                //shapeCoords[0] = new Coord(0 + sdx, h + sdy);
-                //shapeCoords[1] = new Coord(w2 + sdx, h + sdy);
-                //shapeCoords[2] = new Coord(w + sdx, 0 + sdy);
-
-                shapeCoords[0] = new Coord(99, 652);
-                shapeCoords[1] = new Coord(1037, 652);
-                shapeCoords[2] = new Coord(569, 183);
-
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-                shapeDir = new int[7];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 1;
-
-                break;
-            case 2:
-                //trapeze
-                a = sizex * unit * 2;
-                sdx = 50;
-                sdy = 100;
-
-                shapeCoords = new Coord[4];
-                //shapeCoords[0] = new Coord(0 + sdx, a + sdy);
-                //shapeCoords[1] = new Coord((3*a) + sdx, a + sdy);
-                //shapeCoords[2] = new Coord((2*a) + sdx, 0 + sdy);
-                //shapeCoords[3] = new Coord(a + sdx, 0 + sdy);
-
-                shapeCoords[0] = new Coord(42, 432);
-                shapeCoords[1] = new Coord(1038, 432);
-                shapeCoords[2] = new Coord(706, 100);
-                shapeCoords[3] = new Coord(374, 100);
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-                shapeDir = new int[7];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 2;
-                shapeDir[6] = 2;
-
-                break;
-            case 3:
-                //paralelo
-                a = sizex * unit * 2;
-                sdx = 50;
-                sdy = 100;
-
-                shapeCoords = new Coord[4];
-                //shapeCoords[0] = new Coord(0 + sdx, a + sdy);
-                //shapeCoords[1] = new Coord((2*a) + sdx, a + sdy);
-                //shapeCoords[2] = new Coord((3*a) + sdx, 0 + sdy);
-                //shapeCoords[3] = new Coord(a + sdx, 0 + sdy);
-
-                shapeCoords[0] = new Coord(44, 432);
-                shapeCoords[1] = new Coord(707, 430);
-                shapeCoords[2] = new Coord(1037, 100);
-                shapeCoords[3] = new Coord(375, 99);
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-                shapeDir = new int[7];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 2;
-
-                break;
-            case 4:
-                //rect
-                a = sizex * unit * 2;
-                sdx = 50;
-                sdy = 100;
-
-                shapeCoords = new Coord[4];
-                //shapeCoords[0] = new Coord(0 + sdx, a + sdy);
-                //shapeCoords[1] = new Coord((2*a) + sdx, a + sdy);
-                //shapeCoords[2] = new Coord((2*a) + sdx, 0 + sdy);
-                //shapeCoords[3] = new Coord(0 + sdx, 0 + sdy);
-
-                shapeCoords[0] = new Coord(208, 433);
-                shapeCoords[1] = new Coord(871, 431);
-                shapeCoords[2] = new Coord(870, 100);
-                shapeCoords[3] = new Coord(208, 102);
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-                shapeDir = new int[7];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 2;
-
-                break;
-
-            case 5:
-                //hammer
-                a = sizex * unit * 2;
-                b = a / 2;
-                w = (int) Math.sqrt((a * a) + (a * a));
-                w2 = (int) Math.sqrt((b * b) + (b * b));
-                int w3 = w2 / 2;
-                int w4 = w / 2;
-                h = (int) Math.sqrt((b * b) - (w * w));
-                sdx = 50 + w2;
-                sdy = 100 + (4 * b);
-
-
-                shapeCoords = new Coord[8];
-                //shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
-                //shapeCoords[1] = new Coord(b + sdx, 0 + sdy);
-                //shapeCoords[2] = new Coord(b + sdx, sdy-(3*b));
-                //shapeCoords[3] = new Coord(0 + sdx+w, sdy-(3*b));
-                //shapeCoords[4] = new Coord(0 + (sdx+w)-w4, sdy-((3*b)+w2));
-                //shapeCoords[5] = new Coord(sdx-(w/2), sdy-((3*b)+w2));
-                //shapeCoords[6] = new Coord(sdx-(w/2), sdy-(3*b));
-                //shapeCoords[7] = new Coord(sdx, sdy-(3*b));
-
-                shapeCoords[0] = new Coord(423, 832);
-                shapeCoords[1] = new Coord(588, 831);
-                shapeCoords[2] = new Coord(589, 334);
-                shapeCoords[3] = new Coord(892, 333);
-                shapeCoords[4] = new Coord(658, 100);
-                shapeCoords[5] = new Coord(189, 99);
-                shapeCoords[6] = new Coord(189, 333);
-                shapeCoords[7] = new Coord(424, 335);
-
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-                shapeDir = new int[7];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 2;
-
-                break;
-
-            case 6:
-                //square 2
-                a = sizex * unit * 2;
-                w = (int) Math.sqrt((a * a) + (a * a));
-                sdx = 50;
-                sdy = 100;
-
-                shapeCoords = new Coord[4];
-                //shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
-                //shapeCoords[1] = new Coord(w + sdx, 0 + sdy);
-                //shapeCoords[2] = new Coord(w + sdx, w + sdy);
-                //shapeCoords[3] = new Coord(0 + sdx, w + sdy);
-
-                shapeCoords[0] = new Coord(304, 568);
-                shapeCoords[1] = new Coord(772, 570);
-                shapeCoords[2] = new Coord(774, 100);
-                shapeCoords[3] = new Coord(306, 100);
-
-                shapeTypes = new ShapeData.types[6];
-                shapeTypes[0] = ShapeData.types.TRIANGLE2;
-                shapeTypes[1] = ShapeData.types.TRIANGLE2;
-                shapeTypes[2] = ShapeData.types.TRIANGLE2;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-
-                shapeDir = new int[6];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                break;
-
-            case 7:
-                //trapeze 2
-                a = sizex * unit * 2;
-                w = (int) Math.sqrt((a * a) + (a * a));
-                w2 = w / 2;
-                sdx = 50;
-                sdy = 100;
-
-                shapeCoords = new Coord[4];
-                //shapeCoords[0] = new Coord(0 + sdx, 0 + sdy);
-                //shapeCoords[1] = new Coord(w2 + sdx, 0 + sdy);
-                //shapeCoords[2] = new Coord(w + w2 + sdx, w + sdy);
-                //shapeCoords[3] = new Coord(0 + sdx, w + sdy);
-
-                shapeCoords[0] = new Coord(189, 569);
-                shapeCoords[1] = new Coord(892, 569);
-                shapeCoords[2] = new Coord(423, 101);
-                shapeCoords[3] = new Coord(190, 102);
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-                shapeDir = new int[7];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 1;
-                break;
-            case 8:
-                //bird1
-                shapeCoords = new Coord[13];
-
-                shapeCoords[0] = new Coord(392, 1112);
-                shapeCoords[1] = new Coord(723, 1112);
-                shapeCoords[2] = new Coord(888, 946);
-                shapeCoords[3] = new Coord(888, 712);
-                shapeCoords[4] = new Coord(771, 595);
-                shapeCoords[5] = new Coord(770, 526);
-                shapeCoords[6] = new Coord(936, 526);
-                shapeCoords[7] = new Coord(770, 360);
-                shapeCoords[8] = new Coord(654, 478);
-                shapeCoords[9] = new Coord(654, 712);
-                shapeCoords[10] = new Coord(722, 780);
-                shapeCoords[11] = new Coord(253, 780);
-                shapeCoords[12] = new Coord(487, 1013);
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-                shapeDir = new int[7];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 1;
-
-                break;
-
-            case 9:
-                //rocket
-                shapeCoords = new Coord[10];
-
-
-                shapeCoords[0] = new Coord(433, 1097);
-                shapeCoords[1] = new Coord(598, 931);
-                shapeCoords[2] = new Coord(763, 1095);
-                shapeCoords[3] = new Coord(762, 763);
-                shapeCoords[4] = new Coord(928, 929);
-                shapeCoords[5] = new Coord(928, 763);
-                shapeCoords[6] = new Coord(595, 432);
-                shapeCoords[7] = new Coord(266, 765);
-                shapeCoords[8] = new Coord(267, 931);
-                shapeCoords[9] = new Coord(432, 765);
-
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-                shapeDir = new int[7];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 2;
-
-                break;
-
-            case 10:
-                //cat
-                shapeCoords = new Coord[17];
-                shapeCoords[0] = new Coord(466, 1363);
-                shapeCoords[1] = new Coord(797, 1362);
-                shapeCoords[2] = new Coord(1000, 1245);
-                shapeCoords[3] = new Coord(1043, 1086);
-                shapeCoords[4] = new Coord(840, 1203);
-                shapeCoords[5] = new Coord(797, 1362);
-                shapeCoords[6] = new Coord(796, 1031);
-                shapeCoords[7] = new Coord(563, 796);
-                shapeCoords[8] = new Coord(622, 738);
-                shapeCoords[9] = new Coord(622, 504);
-                shapeCoords[10] = new Coord(505, 621);
-                shapeCoords[11] = new Coord(389, 503);
-                shapeCoords[12] = new Coord(388, 738);
-                shapeCoords[13] = new Coord(505, 855);
-                shapeCoords[14] = new Coord(398, 962);
-                shapeCoords[15] = new Coord(564, 1128);
-                shapeCoords[16] = new Coord(563, 1265);
-
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-                shapeDir = new int[7];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 2;
-
-                break;
-            case 11:
-                //fish
-                shapeCoords = new Coord[18];
-
-                shapeCoords[0] = new Coord(511, 763);
-                shapeCoords[1] = new Coord(511, 680);
-                shapeCoords[2] = new Coord(535, 655);
-                shapeCoords[3] = new Coord(651, 773);
-                shapeCoords[4] = new Coord(651, 539);
-                shapeCoords[5] = new Coord(676, 514);
-                shapeCoords[6] = new Coord(675, 431);
-                shapeCoords[7] = new Coord(792, 548);
-                shapeCoords[8] = new Coord(909, 431);
-                shapeCoords[9] = new Coord(792, 314);
-                shapeCoords[10] = new Coord(675, 431);
-                shapeCoords[11] = new Coord(668, 346);
-                shapeCoords[12] = new Coord(643, 322);
-                shapeCoords[13] = new Coord(643, 88);
-                shapeCoords[14] = new Coord(527, 204);
-                shapeCoords[15] = new Coord(502, 180);
-                shapeCoords[16] = new Coord(509, 100);
-                shapeCoords[17] = new Coord(179, 432);
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-
-                shapeDir = new int[8];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 2;
-
-                break;
-
-            case 12:
-                //horse
-                shapeCoords = new Coord[18];
-
-                shapeCoords[0] = new Coord(263, 1224);
-                shapeCoords[1] = new Coord(323, 998);
-                shapeCoords[2] = new Coord(241, 854);
-                shapeCoords[3] = new Coord(474, 1089);
-                shapeCoords[4] = new Coord(482, 1117);
-                shapeCoords[5] = new Coord(648, 1117);
-                shapeCoords[6] = new Coord(482, 951);
-                shapeCoords[7] = new Coord(695, 735);
-                shapeCoords[8] = new Coord(929, 735);
-                shapeCoords[9] = new Coord(813, 619);
-                shapeCoords[10] = new Coord(646, 618);
-                shapeCoords[11] = new Coord(645, 453);
-                shapeCoords[12] = new Coord(811, 453);
-                shapeCoords[13] = new Coord(645, 287);
-                shapeCoords[14] = new Coord(480, 454);
-                shapeCoords[15] = new Coord(481, 619);
-                shapeCoords[16] = new Coord(241, 854);
-                shapeCoords[17] = new Coord(181, 1080);
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-
-                shapeDir = new int[8];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 2;
-
-                break;
-
-            case 13:
-                //house
-                shapeCoords = new Coord[11];
-
-                shapeCoords[0] = new Coord(126,1296);
-                shapeCoords[1] = new Coord(622,1295);
-                shapeCoords[2] = new Coord(621,1129);
-                shapeCoords[3] = new Coord(704,1131);
-                shapeCoords[4] = new Coord(372,799);
-                shapeCoords[5] = new Coord(323,847);
-                shapeCoords[6] = new Coord(323,613);
-                shapeCoords[7] = new Coord(207,731);
-                shapeCoords[8] = new Coord(207,965);
-                shapeCoords[9] = new Coord(42,1131);
-                shapeCoords[10] = new Coord(125,1131);
-
-
-                shapeTypes = new ShapeData.types[7];
-                shapeTypes[0] = ShapeData.types.SQUARE;
-                shapeTypes[1] = ShapeData.types.TRIANGLE1;
-                shapeTypes[2] = ShapeData.types.TRIANGLE1;
-                shapeTypes[3] = ShapeData.types.TRIANGLE2;
-                shapeTypes[4] = ShapeData.types.TRIANGLE3;
-                shapeTypes[5] = ShapeData.types.TRIANGLE3;
-                shapeTypes[6] = ShapeData.types.PARALELOGRAMA;
-
-
-                shapeDir = new int[8];
-                shapeDir[0] = 1;
-                shapeDir[1] = 1;
-                shapeDir[2] = 1;
-                shapeDir[3] = 1;
-                shapeDir[4] = 1;
-                shapeDir[5] = 1;
-                shapeDir[6] = 1;
-
-                break;
-
-
-
-        }
-
-
-
-        sminx = 999999;
-        smaxx = -999999;
-        sminy = 999999;
-        smaxx = -999999;
-        Coord coord;
-
-        float uc = unit / 83f;
-        //float uc = 1;
-
-        System.out.println("unit: "+unit+" uc: "+uc);
-
-        for (int i = 0; i < shapeCoords.length; i++) {
-            shapeCoords[i].x*=uc;
-            shapeCoords[i].y*=uc;
-        }
-
-        for (int i = 0; i < shapeCoords.length; i++) {
-            coord = shapeCoords[i];
-            if (coord.x < sminx)
-                sminx = coord.x;
-            if (coord.x > smaxx)
-                smaxx = coord.x;
-            if (coord.y < sminy)
-                sminy = coord.y;
-            if (coord.y > smaxy)
-                smaxy = coord.y;
-        }
-
-        int sch = sw / 2;
-        int scv = sh / 2;
-
-        int pch = (sminx + smaxx) / 2;
-        int pcv = (sminy + smaxy) / 2;
-
-        int hd = sch - pch;
-        //int vd = scv - pcv;
-        int vd = 100-sminy;
-
-        for (int i = 0; i < shapeCoords.length; i++) {
-            shapeCoords[i].x += hd;
-            shapeCoords[i].y += vd;
-        }
-    }
-
-    Coord getCentroid(Coord[] coords) {
-        Coord ca = coords[0];
-        Coord cb = coords[1];
-        Coord cc = coords[2];
-
-        double a = Math.sqrt( ((cc.x - cb.x) * (cc.x - cb.x)) + ((cc.y - cb.y) * (cc.y - cb.y)));
-        double b = Math.sqrt( ((cc.x - ca.x) * (cc.x - ca.x)) + ((cc.y - ca.y) * (cc.y - ca.y)));
-        double c = Math.sqrt(((cb.x - ca.x) * (cb.x - ca.x)) + ((cb.y - ca.y) * (cb.y - ca.y)));
-
-        int x = (int)((a*ca.x+b*cb.x+c*cc.x)/(a+b+c));
-        int y = (int)((a*ca.y+b*cb.y+c*cc.y)/(a+b+c));
-        return new Coord(x,y);
     }
 
     Coord getSnappedCoord(ShapeData shape) {
         Coord coord;
         Coord[] coords = shape.getCoords();
-        coords = rotateCoords(coords, shape.getCenter(), shape.getDeg());
-        Coord[] fp = getHalfPoints(coords);
+        coords = shape.rotateCoords(shape.getCenter(), shape.getDeg());
+        Coord[] fp = ShapeData.getHalfPoints(coords);
 
 
         Coord[] coords1;
@@ -1275,13 +493,12 @@ public class GameFrame extends View {
         ShapeData shape1;
         Coord snapPoint = null;
         int dist = 1000;
-        for (int i = 0; i < shapes.size(); i++) {
-            shape1 = shapes.elementAt(i);
+        for (int i = 0; i < imageData.shapes.size(); i++) {
+            shape1 = imageData.shapes.elementAt(i);
             if (shape1.getId() == shape.getId())
                 continue;
-            coords1 = shape1.getCoords();
-            coords1 = rotateCoords(coords1, shape1.getCenter(), shape1.getDeg());
-            fp1 = getHalfPoints(coords1);
+            coords1 = shape1.rotateCoords(shape1.getCenter(), shape1.getDeg());
+            fp1 = ShapeData.getHalfPoints(coords1);
             for (int j = 0; j < coords.length; j++) {
                 coord = coords[j];
                 for (int k = 0; k < coords1.length; k++) {
@@ -1344,8 +561,8 @@ public class GameFrame extends View {
 
         }
 
-        coords1 = shapeCoords;
-        fp1 = getHalfPoints(coords1);
+        coords1 = imageData.shapeCoords;
+        fp1 = ShapeData.getHalfPoints(coords1);
         for (int j = 0; j < coords.length; j++) {
             coord = coords[j];
             for (int k = 0; k < coords1.length; k++) {
@@ -1407,154 +624,10 @@ public class GameFrame extends View {
         return snapPoint;
     }
 
-    boolean checkAllConnected() {
-        boolean isConnected = true;
-
-        for (int c = 0; c < shapes.size(); c++) {
-            ShapeData shape = shapes.elementAt(c);
-            Coord coord;
-            Coord[] coords = shape.getCoords();
-            coords = rotateCoords(coords, shape.getCenter(), shape.getDeg());
-            Coord[] fp = getHalfPoints(coords);
-
-            Coord[] coords1;
-            Coord[] fp1;
-            Coord coord1;
-            ShapeData shape1;
-            boolean ok = false;
-            for (int i = 0; i < shapes.size(); i++) {
-                shape1 = shapes.elementAt(i);
-                if (shape1.getId() == shape.getId())
-                    continue;
-                coords1 = shape1.getCoords();
-                coords1 = rotateCoords(coords1, shape1.getCenter(), shape1.getDeg());
-                fp1 = getHalfPoints(coords1);
-                for (int j = 0; j < coords.length; j++) {
-                    coord = coords[j];
-                    for (int k = 0; k < coords1.length; k++) {
-                        coord1 = coords1[k];
-                        if (coord.x == coord1.x && coord.y == coord1.y) {
-                            ok = true;
-                            break;
-                        }
-                    }
-                    if (!ok) {
-                        for (int k = 0; k < fp1.length; k++) {
-                            coord1 = fp1[k];
-                            if (coord.x == coord1.x && coord.y == coord1.y) {
-                                ok = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (!ok){
-                    for (int j = 0; j < fp.length; j++) {
-                        coord = fp[j];
-                        for (int k = 0; k < coords1.length; k++) {
-                            coord1 = coords1[k];
-                            if (coord.x == coord1.x && coord.y == coord1.y) {
-                                ok = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (!ok) {
-                    coords1 = shapeCoords;
-                    fp1 = getHalfPoints(coords1);
-                    for (int j = 0; j < coords.length; j++) {
-                        coord = coords[j];
-                        for (int k = 0; k < coords1.length; k++) {
-                            coord1 = coords1[k];
-                            if (coord.x == coord1.x && coord.y == coord1.y) {
-                                ok = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (!ok) {
-                        for (int j = 0; j < coords.length; j++) {
-                            coord = coords[j];
-                            for (int k = 0; k < fp1.length; k++) {
-                                coord1 = fp1[k];
-                                if (coord.x == coord1.x && coord.y == coord1.y) {
-                                    ok = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    if (!ok) {
-                        for (int j = 0; j < fp.length; j++) {
-                            coord = fp[j];
-                            for (int k = 0; k < coords1.length; k++) {
-                                coord1 = coords1[k];
-                                if (coord.x == coord1.x && coord.y == coord1.y) {
-                                    ok = true;
-                                    break;
-                                }
-                            }
-                            for (int k = 0; k < fp1.length; k++) {
-                                coord1 = fp1[k];
-                                if (coord.x == coord1.x && coord.y == coord1.y) {
-                                    ok = true;
-                                    break;
-                                }
-                            }
-
-                        }
-                    }
-                }
-            }
-            if (!ok)
-                isConnected = false;
-        }
-        return isConnected;
-    }
 
     int distance(Coord c1, Coord c2) {
         int d = (int)Math.sqrt(((c1.x-c2.x)*(c1.x-c2.x)) + ((c1.y-c2.y)*(c1.y-c2.y)));
         return d;
-    }
-
-    Coord[] rotateCoords(Coord[] coords, Coord c, int r) {
-        Coord[] c2 = new Coord[coords.length];
-        int dx = c.x;
-        int dy = c.y;
-
-        double rad = r*Math.PI/180;
-
-        int px,py;
-        int x,y;
-        for (int i = 0; i < coords.length; i++) {
-            x = coords[i].x-dx;
-            y = coords[i].y-dy;
-            //forgatás
-            px = (int)(x*Math.cos(rad)-y*Math.sin(rad));
-            py = (int)(x*Math.sin(rad)+y*Math.cos(rad));
-            px = px+dx;
-            py = py+dy;
-            c2[i] = new Coord(px,py);
-        }
-        return c2;
-    }
-
-    Coord[] getHalfPoints(Coord[] coords) {
-        Coord[] fp = new Coord[coords.length];
-        Coord p1,p2;
-        for (int i = 0; i < coords.length; i++) {
-            p1 = coords[i];
-            if (i < coords.length-1) {
-                p2 = coords[i+1];
-            }
-            else {
-                p2 = coords[0];
-            }
-            fp[i] = new Coord((p1.x+p2.x)/2, (p1.y+p2.y)/2);
-        }
-
-        return fp;
     }
 
     private float angleBetweenLines (float fX, float fY, float sX, float sY, float nfX, float nfY, float nsX, float nsY)
@@ -1588,20 +661,19 @@ public class GameFrame extends View {
     void saveCoord(int x, int y) {
         ShapeData sd;
         Coord coord = new Coord(x,y);
-        for (int i = 0; i < shapes.size(); i++) {
-            sd = shapes.elementAt(i);
+        for (int i = 0; i < imageData.shapes.size(); i++) {
+            sd = imageData.shapes.elementAt(i);
             searchCoord(sd, coord);
         }
     }
 
     void searchCoord(ShapeData sd, Coord coord) {
-        ShapeData.types type;
+        ShapeTypes.types type;
         Coord[] coords;
         Coord centr;
         type = sd.getType();
-        coords = sd.getCoords();
         //parent.showMess("type: "+type+" color: "+sd.getPaint().getColor());
-        coords = rotateCoords(coords, sd.getCenter(), sd.getDeg());
+        coords = sd.rotateCoords(sd.getCenter(), sd.getDeg());
         String s = type.toString();
         int d;
 

@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -71,6 +72,13 @@ public class LevelsActivity extends AppCompatActivity {
                     btn2.setVisibility(levelStars[lvl-1] > 1 ? ImageView.VISIBLE : ImageView.INVISIBLE);
                     ImageView btn3 = (ImageView) levelView.findViewWithTag("star3");
                     btn3.setVisibility(levelStars[lvl-1] > 2 ? ImageView.VISIBLE : ImageView.INVISIBLE);
+
+                    View imview = getLayoutInflater().inflate(R.layout.sample_level_image_view, null);
+                    LevelImageView imageView = (LevelImageView) imview.findViewWithTag("levelImage1");
+                    imageView.setLevel(lvl-1);
+                    LinearLayout layout = (LinearLayout) levelView.findViewWithTag("imageLayout");
+                    layout.addView(imview);
+
                     levelView.setTag(lvl+"");
 
                     levelView.setOnClickListener(new View.OnClickListener() {
@@ -93,7 +101,7 @@ public class LevelsActivity extends AppCompatActivity {
                             }
                             Intent intent = new Intent(self, GameActivity.class);
                             Bundle b = new Bundle();
-                            b.putInt("level", indx+1);
+                            b.putInt("level", indx);
                             intent.putExtras(b);
                             startActivity(intent);
                         }

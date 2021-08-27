@@ -28,14 +28,16 @@
             android:text="1"
             android:textColor="#000000"
             android:textSize="12sp"
-            app:layout_constraintBottom_toTopOf="@+id/game_frame"
+            app:layout_constraintBottom_toTopOf="@+id/layoutImageView"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <loranttoth.dragshapes.LevelImageView
-            android:id="@+id/game_frame"
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:id="@+id/layoutImageView"
+            android:tag="imageLayout"
+            android:orientation="vertical"
+            android:layout_width="wrap_content"
             android:layout_height="60dp"
             android:textColor="#FFFFFF"
             android:clickable="false"
@@ -48,37 +50,43 @@
         <ImageView
             android:id="@+id/imageView7"
             android:tag="star1"
+            android:gravity="center"
             android:layout_width="20dp"
             android:layout_height="20dp"
+            android:layout_marginTop="5dp"
             android:layout_marginBottom="10dp"
             android:src="@drawable/star"
-            app:layout_constraintEnd_toStartOf="@+id/imageView6"
+
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/game_frame" />
+            app:layout_constraintTop_toBottomOf="@+id/layoutImageView" />
 
         <ImageView
             android:id="@+id/imageView6"
             android:tag="star2"
+            android:gravity="center"
             android:layout_width="20dp"
             android:layout_height="20dp"
+            android:layout_marginTop="5dp"
             android:layout_marginBottom="10dp"
             android:src="@drawable/star"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/imageView5"
             app:layout_constraintStart_toEndOf="@+id/imageView7"
-            app:layout_constraintTop_toBottomOf="@+id/game_frame" />
+            app:layout_constraintTop_toBottomOf="@+id/layoutImageView" />
 
         <ImageView
             android:id="@+id/imageView5"
             android:tag="star3"
+            android:gravity="center"
             android:layout_width="20dp"
             android:layout_height="20dp"
+            android:layout_marginTop="5dp"
             android:layout_marginBottom="10dp"
             android:src="@drawable/star"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/imageView6"
-            app:layout_constraintTop_toBottomOf="@+id/game_frame" />
+            app:layout_constraintTop_toBottomOf="@+id/layoutImageView" />
     </android.support.constraint.ConstraintLayout>
 </LinearLayout>
 
