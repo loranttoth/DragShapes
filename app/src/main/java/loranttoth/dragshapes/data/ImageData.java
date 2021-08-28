@@ -21,7 +21,7 @@ public class ImageData {
 
     int type;
 
-    public static int max = 14;
+    public static int max = 15;
 
     public ShapeTypes.types[] shapeTypes;
     public int[] shapeDir;
@@ -557,13 +557,47 @@ public class ImageData {
 
                 break;
 
+            case 14:
+                //recttriangle
+                shapeCoords = new Coord[6];
+
+                shapeCoords[0] = new Coord(590, 1384);
+                shapeCoords[1] = new Coord(755, 1218);
+                shapeCoords[2] = new Coord(753, 719);
+                shapeCoords[3] = new Coord(587, 553);
+                shapeCoords[4] = new Coord(421, 719);
+                shapeCoords[5] = new Coord(424, 1218);
+
+                shapeTypes = new ShapeTypes.types[7];
+                shapeTypes[0] = ShapeTypes.types.SQUARE;
+                shapeTypes[1] = ShapeTypes.types.TRIANGLE1;
+                shapeTypes[2] = ShapeTypes.types.TRIANGLE1;
+                shapeTypes[3] = ShapeTypes.types.TRIANGLE2;
+                shapeTypes[4] = ShapeTypes.types.TRIANGLE3;
+                shapeTypes[5] = ShapeTypes.types.TRIANGLE3;
+                shapeTypes[6] = ShapeTypes.types.PARALELOGRAMA;
+
+
+                shapeDir = new int[8];
+                shapeDir[0] = 1;
+                shapeDir[1] = 1;
+                shapeDir[2] = 1;
+                shapeDir[3] = 1;
+                shapeDir[4] = 1;
+                shapeDir[5] = 1;
+                shapeDir[6] = 2;
+
+                break;
+
+
+
 
         }
 
         sminx = 999999;
         smaxx = -999999;
         sminy = 999999;
-        smaxx = -999999;
+        smaxy = -999999;
         Coord coord;
 
         /*for (int i = 0; i < shapeCoords.length; i++) {
@@ -599,7 +633,7 @@ public class ImageData {
         sminx = 999999;
         smaxx = -999999;
         sminy = 999999;
-        smaxx = -999999;
+        smaxy = -999999;
 
         for (int i = 0; i < shapeCoords.length; i++) {
             coord = shapeCoords[i];

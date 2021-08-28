@@ -95,8 +95,16 @@ public abstract class ShapeData {
 
     public abstract void makeCoords();
 
-    public Coord[] rotateCoords(Coord c, int r) {
+    public Coord[] rotateCoords(Coord c, int r0) {
         Coord[] c2 = new Coord[coords.length];
+        for (int i = 0; i < coords.length; i++) {
+            Coord coordP = ShapeData.rotateCoord(coords[i], c, r0);
+            c2[i] = coordP;
+        }
+        return c2;
+    }
+
+    public static Coord rotateCoord(Coord coord, Coord c, int r) {
         int dx = c.x;
         int dy = c.y;
 
@@ -104,17 +112,15 @@ public abstract class ShapeData {
 
         int px,py;
         int x,y;
-        for (int i = 0; i < coords.length; i++) {
-            x = coords[i].x-dx;
-            y = coords[i].y-dy;
+            x = coord.x-dx;
+            y = coord.y-dy;
+
             //forgatás
             px = (int)(x*Math.cos(rad)-y*Math.sin(rad));
             py = (int)(x*Math.sin(rad)+y*Math.cos(rad));
             px = px+dx;
             py = py+dy;
-            c2[i] = new Coord(px,py);
-        }
-        return c2;
+            return new Coord(px,py);
     }
 
     public static Coord[] getHalfPoints(Coord[] coords) {
@@ -134,7 +140,7 @@ public abstract class ShapeData {
         return fp;
     }
 
-    public Coord getCentroid() {
+    public Coord getCentroid_old() {
         Coord ca = coords[0];
         Coord cb = coords[1];
         Coord cc = coords[2];
@@ -145,6 +151,14 @@ public abstract class ShapeData {
 
         int x = (int)((a*ca.x+b*cb.x+c*cc.x)/(a+b+c));
         int y = (int)((a*ca.y+b*cb.y+c*cc.y)/(a+b+c));
+        return new Coord(x,y);
+    }
+
+    public Coord getCentroid() {
+        Coord ca = coords[1];
+        Coord cc = coords[2];
+        int x = (int)((ca.x+cc.x)/2);
+        int y = (int)((ca.y+cc.y)/2);
         return new Coord(x,y);
     }
 }

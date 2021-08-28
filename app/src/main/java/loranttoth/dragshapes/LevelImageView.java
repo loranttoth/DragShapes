@@ -109,7 +109,7 @@ public class LevelImageView extends View {
         void makeShapeCoords() {
 
             Random rnd = new Random();
-            int max = 14;
+            int max = ImageData.max;
 
             if (level >= max)
                 level = rnd.nextInt(max);

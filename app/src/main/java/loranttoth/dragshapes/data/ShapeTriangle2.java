@@ -32,14 +32,15 @@ public class ShapeTriangle2 extends ShapeData {
     public void makeCoords() {
         Coord[] coord = new Coord[3];
         if (dir == 1) {
-            coord[0] = new Coord(center.x, center.y);
-            coord[1] = new Coord(center.x + (sizex * unit * 2), center.y);
-            coord[2] = new Coord(center.x + (sizex * unit), center.y - (sizex * unit));
+            coord[0] = new Coord(center.x + (sizex * unit), center.y - (sizex * unit));
+            coord[1] = new Coord(center.x, center.y);
+            coord[2] = new Coord(center.x + (sizex * unit * 2), center.y);
         }
         else {
-            coord[0] = new Coord(center.x, center.y);
-            coord[1] = new Coord(center.x - (sizex * unit * 2), center.y);
-            coord[2] = new Coord(center.x - (sizex * unit), center.y - (sizex * unit));
+            coord[0] = new Coord(center.x - (sizex * unit), center.y - (sizex * unit));
+            coord[1] = new Coord(center.x, center.y);
+            coord[2] = new Coord(center.x - (sizex * unit * 2), center.y);
+
         }
         setCoords(coord);
         center = getCentroid();
