@@ -5,8 +5,7 @@
     android:layout_height="match_parent"
     android:layout_marginBottom="8dp"
     android:orientation="horizontal"
-    android:padding="10dp"
-    android:background="@drawable/level_bg"
+    android:padding="2dp"
     app:layout_constraintBottom_toBottomOf="parent">
 
     <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -15,8 +14,9 @@
         android:id="@+id/tableLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="2dp"
-        android:background="@color/colorPrimary">
+        android:padding="1dp"
+        android:background="@drawable/level_bg"
+        >
 
         <TextView
             android:id="@+id/textView2"
@@ -38,14 +38,14 @@
             android:tag="imageLayout"
             android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
+            android:layout_height="70dp"
             android:textColor="#FFFFFF"
             android:clickable="false"
             android:focusable="false"
             app:layout_constraintBottom_toTopOf="@+id/imageView7"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/textView2" />
+            app:layout_constraintTop_toBottomOf="@+id/textView2" />
 
         <ImageView
             android:id="@+id/imageView7"

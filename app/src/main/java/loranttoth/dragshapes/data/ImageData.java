@@ -844,7 +844,7 @@ public class ImageData {
         return isConnected;
     }
 
-    public void setSizetoFit(int w) {
+    public void setSizetoFit(int w, int h) {
         sminx = 999999;
         smaxx = -999999;
         sminy = 999999;
@@ -863,9 +863,50 @@ public class ImageData {
         }
 
         int l = smaxx - sminx;
-        int l2 = w - 50;
+        int l2 = w-20;
         float l3 = (float)l2 / (float)l;
 
-        ShapeData.unit *= l3;
+        int t = smaxy - sminy;
+        int t2 = h-20;
+        float t3 = (float)t2 / (float)t;
+        float ss = Math.min(l3, t3);
+
+        for (int i = 0; i < shapeCoords.length; i++) {
+            shapeCoords[i].x *= ss;
+            shapeCoords[i].y *= ss;
+        }
+
+        sminx = 999999;
+        smaxx = -999999;
+        sminy = 999999;
+        smaxy = -999999;
+
+        for (int i = 0; i < shapeCoords.length; i++) {
+            coord = shapeCoords[i];
+            if (coord.x < sminx)
+                sminx = coord.x;
+            if (coord.x > smaxx)
+                smaxx = coord.x;
+            if (coord.y < sminy)
+                sminy = coord.y;
+            if (coord.y > smaxy)
+                smaxy = coord.y;
+        }
+
+        int sch = w / 2;
+        int scv = h / 2;
+
+        int pch = (sminx + smaxx) / 2;
+        int pcv = (sminy + smaxy) / 2;
+
+        int hd = sch - pch;
+        int vd = scv - pcv;
+        //int vd = 100 - sminy;
+
+        for (int i = 0; i < shapeCoords.length; i++) {
+            shapeCoords[i].x += hd;
+            shapeCoords[i].y += vd;
+        }
+
     }
 }

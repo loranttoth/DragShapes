@@ -37,6 +37,8 @@ public class GameFrame extends View {
     Paint paintCircle;
     Paint paintCircle2;
 
+    Paint paintBg;
+
     GameActivity parent;
 
     int sdx;
@@ -67,6 +69,7 @@ public class GameFrame extends View {
 
     int shapeColor = Color.LTGRAY;
     int shapeColor2 = Color.DKGRAY;
+    int bgcolor;
     float emptyPixelNum = 0;
 
     boolean isSaveMode = false;
@@ -102,6 +105,12 @@ public class GameFrame extends View {
         paintCircle2.setColor(Color.BLACK);
         paintCircle2.setStyle(Paint.Style.FILL_AND_STROKE);
         paintCircle2.setStrokeWidth(4);
+
+        bgcolor = Color.parseColor("#707ed7");
+
+        paintBg = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintBg.setColor(bgcolor);
+        //paintBg.setStyle(Paint.Style.FILL);
 
         aktSnapCoords = new Vector<>();
 
@@ -146,11 +155,13 @@ public class GameFrame extends View {
                     Bitmap.Config.ARGB_8888);
             canvasb = new Canvas(bitmap);
         }
+
         canvasb.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+
+        canvas.drawRect(0,0, w, h, paintBg);
 
         drawBigShape(canvas);
         drawBigShape(canvasb);
-
 
         paint.setColor(Color.BLUE);
         paint.setStrokeWidth(2);

@@ -120,6 +120,6 @@ public class LevelImageView extends View {
             imageData = new ImageData(level);
             imageData.makeShapeCoords(w, h);
 
-            imageData.setSizetoFit(getWidth());
+            imageData.setSizetoFit(w, h);
         }
     }
