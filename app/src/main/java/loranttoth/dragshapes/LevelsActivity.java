@@ -27,7 +27,7 @@ public class LevelsActivity extends AppCompatActivity {
 
 
     private static final int NUM_ROWS = 20;
-    private static final int NUM_COLS = 3;
+    private static final int NUM_COLS = 4;
 
     int[] levelStars;
 

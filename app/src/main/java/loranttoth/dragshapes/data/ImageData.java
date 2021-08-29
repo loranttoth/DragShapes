@@ -843,4 +843,29 @@ public class ImageData {
         }
         return isConnected;
     }
+
+    public void setSizetoFit(int w) {
+        sminx = 999999;
+        smaxx = -999999;
+        sminy = 999999;
+        smaxy = -999999;
+        Coord coord;
+        for (int i = 0; i < shapeCoords.length; i++) {
+            coord = shapeCoords[i];
+            if (coord.x < sminx)
+                sminx = coord.x;
+            if (coord.x > smaxx)
+                smaxx = coord.x;
+            if (coord.y < sminy)
+                sminy = coord.y;
+            if (coord.y > smaxy)
+                smaxy = coord.y;
+        }
+
+        int l = smaxx - sminx;
+        int l2 = w - 50;
+        float l3 = (float)l2 / (float)l;
+
+        ShapeData.unit *= l3;
+    }
 }

@@ -75,6 +75,8 @@ public class GameFrame extends View {
 
     int level = 0;
 
+    Coord aktCircleCoord = null;
+
     public GameFrame(Context c, AttributeSet attrs) {
         super(c, attrs);
         context = c;
@@ -161,10 +163,9 @@ public class GameFrame extends View {
                 drawShape(sd, canvas, true);
                 drawShape(sd, canvasb, true);
             }
-            if (aktShape != null) {
+            if (aktShape != null && !isDrag) {
                 drawShape(aktShape, canvas, true);
-                if (isRotate)
-                    drawCircleforRotate(aktShape, canvas);
+                drawCircleforRotate(aktShape, canvas);
                 //  drawShape(aktShape, canvasb, true);
             }
 
@@ -340,12 +341,14 @@ public class GameFrame extends View {
         int d = distance(p1, p2);
         int r = d / 2;
 
+        int cr = getWidth() / 20;
+
         canvas.drawCircle(sd.getCenter().x, sd.getCenter().y, r, paintCircle);
 
         coord = new Coord(sd.getCenter().x, sd.getCenter().y - r);
-        Coord ckoord2 = ShapeData.rotateCoord(coord, sd.getCenter(), sd.getDeg());
+        aktCircleCoord = ShapeData.rotateCoord(coord, sd.getCenter(), sd.getDeg());
 
-        canvas.drawCircle(ckoord2.x, ckoord2.y, 50, paintCircle2);
+        canvas.drawCircle(aktCircleCoord.x, aktCircleCoord.y, cr, paintCircle2);
 
         canvas.restore();
     }
@@ -405,21 +408,32 @@ public class GameFrame extends View {
                         Coord[] coords;
                         ShapeData shape;
                         boolean ok = false;
-                        isRotate = false;
-                        for (int i = 0; i < imageData.shapes.size(); i++) {
-                            //if (shapes.elementAt(i).getColor() == pcol) {
-                            shape = imageData.shapes.elementAt(i);
-                            coords = shape.rotateCoords(shape.getCenter(), shape.getDeg());
-                            if (containsPoly(coords, coord)) {
-                                aktShape = imageData.shapes.elementAt(i);
-                                isDrag = true;
-                                ok = true;
-                                invalidate();
-                                break;
+
+                        if (aktShape != null) {
+                            if (aktCircleCoord != null) {
+                                int cr = getWidth() / 20;
+                                if (x >= this.aktCircleCoord.x - cr && y >= this.aktCircleCoord.y - cr && x <= this.aktCircleCoord.x + cr && y <= this.aktCircleCoord.y + cr) {
+                                    isRotate = true;
+                                    ok = true;
+                                }
                             }
                         }
-                        if (!ok && aktShape != null)
-                            isRotate = true;
+
+                        if (!ok) {
+                            isRotate = false;
+                            for (int i = 0; i < imageData.shapes.size(); i++) {
+                                //if (shapes.elementAt(i).getColor() == pcol) {
+                                shape = imageData.shapes.elementAt(i);
+                                coords = shape.rotateCoords(shape.getCenter(), shape.getDeg());
+                                if (containsPoly(coords, coord)) {
+                                    aktShape = imageData.shapes.elementAt(i);
+                                    isDrag = true;
+                                    ok = true;
+                                    invalidate();
+                                    break;
+                                }
+                            }
+                        }
                     }
 
                 }
@@ -498,7 +512,10 @@ public class GameFrame extends View {
                         int cy = cent.y;
                         float mAngle = angleBetweenLines( cx, cy, x, y, cx,cy,cx,cy-100);
                         System.out.println("angel: "+mAngle);
-                        aktShape.setDeg((int)mAngle);
+                        float f = mAngle / 15;
+                        int i = Math.round(f);
+                        int angle = i*15;
+                        aktShape.setDeg(angle);
                         oldx = x;
                         oldy = y;
                         invalidate();
@@ -537,8 +554,7 @@ public class GameFrame extends View {
                     saveCoord(x,y);
                 aktSnapCoords.clear();
                 isDrag = false;
-                if (aktShape != null)
-                    isRotate = true;
+                isRotate = false;
                 invalidate();
                 break;
             //case MotionEvent.ACTION_POINTER_UP:
